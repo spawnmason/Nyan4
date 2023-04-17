@@ -1,0 +1,16 @@
+group 'net.futureclient'
+version '1.0'
+
+minecraft {
+    accessTransformer rootProject.file('strip_access_at.cfg')
+}
+
+repositories {
+    maven {
+        url 'https://maven.latticg.com/'
+    }
+}
+
+dependencies {
+    shade group: 'com.seedfinding', name: 'latticg', version: '1.06'
+}
