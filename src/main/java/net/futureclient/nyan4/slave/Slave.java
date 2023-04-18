@@ -3,17 +3,19 @@ package net.futureclient.nyan4.slave;
 import com.seedfinding.latticg.RandomReverser;
 import net.futureclient.headless.eventbus.events.PacketEvent;
 import net.futureclient.headless.game.HeadlessMinecraft;
+import net.futureclient.nyan4.NyanDatabase;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiDownloadTerrain;
-import net.minecraft.network.play.server.*;
+import net.minecraft.network.play.server.SPacketPlayerListItem;
+import net.minecraft.network.play.server.SPacketSpawnObject;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.world.DimensionType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.concurrent.ScheduledExecutorService;
 
 public final class Slave {
     private static final Logger LOGGER = LogManager.getLogger("Slave");
@@ -88,6 +90,7 @@ public final class Slave {
             });
         }
     }
+
     private boolean probablyInQueue() {
         return ctx.player.isSpectator() || Math.abs(ctx.player.posX) <= 16 && Math.abs(ctx.player.posZ) <= 16;
     }
@@ -119,11 +122,11 @@ public final class Slave {
         rev.addNextFloatCall(rnd3, rnd3, true, true);
         final long[] found = rev.findAllValidSeeds().toArray();
         if (found.length == 0) {
-            insertIntoSqlite(timestamp, -1);
+            NyanDatabase.saveData(timestamp, -1);
         }
         boolean match = false;
         for (long candidate : found) {
-            insertIntoSqlite(timestamp, candidate);
+            NyanDatabase.saveData(timestamp, candidate);
             long stepped = candidate;
             for (int stepsBack = 0; stepsBack < 10000; stepsBack++) {
                 long meow = stepped ^ 0x5DEECE66DL;
@@ -142,14 +145,6 @@ public final class Slave {
         if (!match) {
             LOGGER.info("No match. Total time: " + (System.currentTimeMillis() - start));
         }
-    }
-
-    public static void insertIntoSqlite(long timestamp, long candidate) {
-        if (candidate != -1 && candidate != (candidate & ((1L << 48) - 1))) {
-            throw new IllegalStateException();
-        }
-        // runSQL("INSERT INTO raw_data(timestamp, rng_state) VALUES (?, ?)", timestamp, candidate)
-        LOGGER.warn("not implemented yet " + timestamp + " " + candidate);
     }
 
     private static ChunkPos woodlandValid(long candidate) {
