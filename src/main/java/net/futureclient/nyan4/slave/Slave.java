@@ -57,6 +57,9 @@ public final class Slave {
                 break out;
             }
             final long recTime = System.currentTimeMillis();
+            final double x = packet.getX();
+            final double y = packet.getY();
+            final double z = packet.getZ();
             ctx.addScheduledTask(() -> {
                 // disconnected
                 if (ctx.world == null || ctx.player == null) {
@@ -77,7 +80,7 @@ public final class Slave {
                 pluginExecutor.execute(() -> {
                     // process async
                     try {
-                        processItemDropAsync(packet.getX(), packet.getY(), packet.getZ(), recTime);
+                        processItemDropAsync(x, y, z, recTime);
                     } catch (final Throwable t) {
                         LOGGER.error("Error while processing item drop", t);
                     }
