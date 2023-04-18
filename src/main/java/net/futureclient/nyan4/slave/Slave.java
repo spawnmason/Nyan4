@@ -157,12 +157,10 @@ public final class Slave {
             }
             if (!match) {
                 LOGGER.info("marking as slow seed");
+                LOGGER.info("no match, marking as slow seed. Total time: " + (System.currentTimeMillis() - start));
                 slowToProcess.add(candidate);
             }
             LOGGER.info("Candidate: " + candidate);
-        }
-        if (!match) {
-            LOGGER.info("No match. Total time: " + (System.currentTimeMillis() - start));
         }
     }
 
