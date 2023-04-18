@@ -1,6 +1,7 @@
 package net.futureclient.nyan4.slave;
 
 import com.seedfinding.latticg.RandomReverser;
+import it.unimi.dsi.fastutil.longs.LongOpenHashBigSet;
 import net.futureclient.headless.eventbus.events.PacketEvent;
 import net.futureclient.headless.game.HeadlessMinecraft;
 import net.futureclient.nyan4.NyanDatabase;
@@ -15,6 +16,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 
 public final class Slave {
@@ -105,10 +108,13 @@ public final class Slave {
 
     private static final int WOODLAND_BOUNDS = 23440;
 
+    private static final Set<Long> slowToProcess = Collections.synchronizedSet(new LongOpenHashBigSet()); // dont store in sqlite obviously, because we are bailing out after only 10k steps, that isn't permanent its just not wanting to use much cpu
+
     @SuppressWarnings("UnstableApiUsage")
     private static void processItemDropAsync(final double x, final double y, final double z,
                                              final long timestamp) {
         final long start = System.currentTimeMillis();
+
         final float rnd1 = ((float) (x - (int) Math.floor(x) - 0.25d)) * 2;
         final float rnd2 = ((float) (y - (int) Math.floor(y) - 0.25d)) * 2;
         final float rnd3 = ((float) (z - (int) Math.floor(z) - 0.25d)) * 2;
@@ -126,7 +132,14 @@ public final class Slave {
         }
         boolean match = false;
         for (long candidate : found) {
-            NyanDatabase.saveData(timestamp, candidate);
+            if (NyanDatabase.saveData(timestamp, candidate)) {
+                LOGGER.info("Saved RNG seed to database, and the processing is already cached");
+                continue;
+            }
+            if (slowToProcess.contains(candidate)) {
+                LOGGER.info("not doing a slow seed again");
+                continue;
+            }
             long stepped = candidate;
             for (int stepsBack = 0; stepsBack < 10000; stepsBack++) {
                 long meow = stepped ^ 0x5DEECE66DL;
@@ -135,10 +148,15 @@ public final class Slave {
                     LOGGER.info("Match at " + pos.x + "," + pos.z + " assuming rng was stepped by " + stepsBack);
                     LOGGER.info("In blocks that's between " + (pos.x * 16 * 80) + "," + (pos.z * 16 * 80) + " and " + ((pos.x * 80 + 79) * 16 + 15) + "," + ((pos.z * 80 + 79) * 16 + 15));
                     LOGGER.info("Match time: " + (System.currentTimeMillis() - start));
+                    NyanDatabase.saveProcessedRngSeed(candidate, stepsBack, pos.x, pos.z);
                     match = true;
                     break;
                 }
                 stepped = prevSeed(stepped);
+            }
+            if (!match) {
+                LOGGER.info("marking as slow seed");
+                slowToProcess.add(candidate);
             }
             LOGGER.info("Candidate: " + candidate);
         }
