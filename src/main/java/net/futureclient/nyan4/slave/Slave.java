@@ -120,16 +120,18 @@ public final class Slave {
         }
     });
 
-    private static synchronized boolean checkAlreadyProcessed(Vec3d pos) {
-        // bots standing near each other ingame will get the exact same three doubles
-        // save CPU time by not running lattice on the exact same packet twice
-        if (recentlyProcessed.contains(pos)) {
-            recentlyProcessed.remove(pos);
-            recentlyProcessed.add(pos); // move to end of queue
-            return true;
+    private static boolean checkAlreadyProcessed(Vec3d pos) {
+        synchronized (recentlyProcessed) {
+            // bots standing near each other ingame will get the exact same three doubles
+            // save CPU time by not running lattice on the exact same packet twice
+            if (recentlyProcessed.contains(pos)) {
+                recentlyProcessed.remove(pos);
+                recentlyProcessed.add(pos); // move to end of queue
+                return true;
+            }
+            recentlyProcessed.add(pos);
+            return false;
         }
-        recentlyProcessed.add(pos);
-        return false;
     }
 
     @SuppressWarnings("UnstableApiUsage")
