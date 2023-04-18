@@ -16,7 +16,7 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public final class Slave {
-    private static final Logger LOGGER = LogManager.getLogger("Nyan");
+    private static final Logger LOGGER = LogManager.getLogger("Slave");
 
     public final Minecraft ctx;
     private final ScheduledExecutorService pluginExecutor;
@@ -122,7 +122,7 @@ public final class Slave {
         for (long candidate : found) {
             insertIntoSqlite(timestamp, candidate);
             long stepped = candidate;
-            for (int stepsBack = 0; stepsBack < 100; stepsBack++) {
+            for (int stepsBack = 0; stepsBack < 10000; stepsBack++) {
                 long meow = stepped ^ 0x5DEECE66DL;
                 ChunkPos pos = woodlandValid(meow); // not a real chunkpos its *80
                 if (pos != null) {

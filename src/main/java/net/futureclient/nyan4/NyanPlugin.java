@@ -19,7 +19,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 @Plugin.Metadata(name = "Nyan", version = "4.0")
 public final class NyanPlugin implements Plugin {
-    private static final Logger LOGGER = LogManager.getLogger("NoComment");
+    private static final Logger LOGGER = LogManager.getLogger("Nyan");
 
     private final Map<Minecraft, Slave> slaves = new ConcurrentHashMap<>();
 
@@ -56,7 +56,7 @@ public final class NyanPlugin implements Plugin {
         this.detachSlave(event.ctx);
     }
 
-    @SubscribeEvent(priority = EventPriority.HIGHEST) // higher then proxy :sunglasses:
+    @SubscribeEvent(priority = EventPriority.HIGHEST) // higher than proxy :sunglasses:
     public void onPacket(final PacketEvent.Receive event) {
         final HeadlessMinecraft mc = event.getMinecraft();
         if (mc != null) {

@@ -12,5 +12,7 @@ repositories {
 }
 
 dependencies {
-    shade group: 'com.seedfinding', name: 'latticg', version: '1.06'
+    shade (group: 'com.seedfinding', name: 'latticg', version: '1.06') {
+        transitive = false
+    }
 }
