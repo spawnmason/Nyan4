@@ -40,7 +40,6 @@ public final class NyanPlugin implements Plugin {
         } catch (final Throwable t) {
             LOGGER.warn("Failed to stop executor", t);
         }
-        ctx.commandManager().unregister("nocomment");
         ctx.subscribers().unregister(this);
         ctx.userManager().users().forEach(this::detachSlave);
 
