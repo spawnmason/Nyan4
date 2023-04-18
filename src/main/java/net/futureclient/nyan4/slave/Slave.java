@@ -1,7 +1,6 @@
 package net.futureclient.nyan4.slave;
 
 import com.seedfinding.latticg.RandomReverser;
-import it.unimi.dsi.fastutil.longs.LongOpenHashBigSet;
 import net.futureclient.headless.eventbus.events.PacketEvent;
 import net.futureclient.headless.game.HeadlessMinecraft;
 import net.futureclient.nyan4.NyanDatabase;
@@ -11,13 +10,12 @@ import net.minecraft.network.play.server.SPacketPlayerListItem;
 import net.minecraft.network.play.server.SPacketSpawnObject;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.DimensionType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 
 public final class Slave {
@@ -108,11 +106,39 @@ public final class Slave {
 
     private static final int WOODLAND_BOUNDS = 23440;
 
-    private static final Set<Long> slowToProcess = Collections.synchronizedSet(new LongOpenHashBigSet()); // dont store in sqlite obviously, because we are bailing out after only 10k steps, that isn't permanent its just not wanting to use much cpu
+    private static final Set<Long> recentlySlowToProcess = Collections.synchronizedSet(Collections.newSetFromMap(new LinkedHashMap<Long, Boolean>() {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<Long, Boolean> eldest) {
+            return size() > 100;
+        }
+    })); // dont store in sqlite obviously, because we are bailing out after only 10k steps, that isn't permanent its just not wanting to use much cpu
+
+    private static final Set<Vec3d> recentlyProcessed = Collections.newSetFromMap(new LinkedHashMap<Vec3d, Boolean>() { // TODO calling super() with accessOrder = true might be more elegant i guess?
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<Vec3d, Boolean> eldest) {
+            return size() > 100;
+        }
+    });
+
+    private static synchronized boolean checkAlreadyProcessed(Vec3d pos) {
+        // bots standing near each other ingame will get the exact same three doubles
+        // save CPU time by not running lattice on the exact same packet twice
+        if (recentlyProcessed.contains(pos)) {
+            recentlyProcessed.remove(pos);
+            recentlyProcessed.add(pos); // move to end of queue
+            return true;
+        }
+        recentlyProcessed.add(pos);
+        return false;
+    }
 
     @SuppressWarnings("UnstableApiUsage")
     private static void processItemDropAsync(final double x, final double y, final double z,
                                              final long timestamp) {
+        if (checkAlreadyProcessed(new Vec3d(x, y, z))) {
+            LOGGER.info("skipping item drop already processed by another bot");
+            return;
+        }
         final long start = System.currentTimeMillis();
 
         final float rnd1 = ((float) (x - (int) Math.floor(x) - 0.25d)) * 2;
@@ -137,7 +163,9 @@ public final class Slave {
                 LOGGER.info("Saved RNG seed to database, and the processing is already cached");
                 continue;
             }
-            if (slowToProcess.contains(candidate)) {
+            if (recentlySlowToProcess.contains(candidate)) {
+                recentlySlowToProcess.remove(candidate);
+                recentlySlowToProcess.add(candidate);
                 LOGGER.info("not doing a slow seed again");
                 continue;
             }
@@ -158,7 +186,7 @@ public final class Slave {
             if (!match) {
                 LOGGER.info("marking as slow seed");
                 LOGGER.info("no match, marking as slow seed. Total time: " + (System.currentTimeMillis() - start));
-                slowToProcess.add(candidate);
+                recentlySlowToProcess.add(candidate);
             }
             LOGGER.info("Candidate: " + candidate);
         }
