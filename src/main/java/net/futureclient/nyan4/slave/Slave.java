@@ -213,7 +213,7 @@ public final class Slave {
     }
 
     private static long reverseWoodlandZGivenX(long seed48Bits, int chunkX) {
-        return (((seed48Bits - worldseed - 10387319 - (long) chunkX * 341873128712L) & ((1L << 48) - 1)) * chunkZMultInv248) << 16 >> 16;
+        return ((seed48Bits - worldseed - 10387319 - (long) chunkX * 341873128712L) * chunkZMultInv248) << 16 >> 16;
     }
 
     public void close() {
