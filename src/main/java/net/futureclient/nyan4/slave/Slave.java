@@ -138,7 +138,7 @@ public final class Slave {
     private static void processItemDropAsync(final double x, final double y, final double z,
                                              final long timestamp) {
         if (checkAlreadyProcessed(new Vec3d(x, y, z))) {
-            LOGGER.info("skipping item drop already processed by another bot");
+            //LOGGER.info("skipping item drop already processed by another bot");
             return;
         }
         final long start = System.currentTimeMillis();
@@ -162,7 +162,7 @@ public final class Slave {
         boolean match = false;
         for (long candidate : found) {
             if (NyanDatabase.saveData(timestamp, candidate)) {
-                LOGGER.info("Saved RNG seed to database, and the processing is already cached");
+                //LOGGER.info("Saved RNG seed to database, and the processing is already cached");
                 continue;
             }
             if (recentlySlowToProcess.contains(candidate)) {
