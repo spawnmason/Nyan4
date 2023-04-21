@@ -9,12 +9,16 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 
 public class NyanDatabase {
     private static final BasicDataSource database;
 
     static {
         database = Database.connect(Paths.get("nyan.db"));
+        database.setConnectionInitSqls(Arrays.asList(
+                "PRAGMA busy_timeout = 30000"
+        ));
         try {
             Database.applySchema(database, DatabaseUtils.getSchemaFromResource(NyanDatabase.class.getClassLoader(), "nyan_schema.sql"));
         } catch (SQLException e) {
