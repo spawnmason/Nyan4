@@ -155,8 +155,8 @@ public final class Slave {
         rev.addNextFloatCall(rnd2, rnd2, true, true);
         rev.addNextFloatCall(rnd3, rnd3, true, true);
         final long[] found = rev.findAllValidSeeds().toArray();
-        if (found.length == 0) {
-            LOGGER.info("Failed match " + x + " " + y + " " + z);
+        if (found.length != 0) {
+            LOGGER.info("Failed match " + x + " " + y + " " + z + " " + Arrays.toString(found));
             NyanDatabase.saveData(timestamp, -1);
         }
         boolean match = false;
