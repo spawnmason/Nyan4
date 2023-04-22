@@ -172,7 +172,7 @@ public final class Slave {
                 continue;
             }
             long stepped = candidate;
-            for (int stepsBack = 0; stepsBack < 10000; stepsBack++) {
+            for (int stepsBack = 0; stepsBack < 400; stepsBack++) {
                 long meow = stepped ^ 0x5DEECE66DL;
                 ChunkPos pos = woodlandValid(meow); // not a real chunkpos its *80
                 if (pos != null) {
