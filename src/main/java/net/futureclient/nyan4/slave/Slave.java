@@ -168,7 +168,6 @@ public final class Slave {
             if (recentlySlowToProcess.contains(candidate)) {
                 recentlySlowToProcess.remove(candidate);
                 recentlySlowToProcess.add(candidate);
-                LOGGER.info("not doing a slow seed again");
                 continue;
             }
             long stepped = candidate;
@@ -178,7 +177,7 @@ public final class Slave {
                 if (pos != null) {
                     LOGGER.info("Match at " + pos.x + "," + pos.z + " assuming rng was stepped by " + stepsBack);
                     LOGGER.info("In blocks that's between " + (pos.x * 16 * 80) + "," + (pos.z * 16 * 80) + " and " + ((pos.x * 80 + 79) * 16 + 15) + "," + ((pos.z * 80 + 79) * 16 + 15));
-                    LOGGER.info("Match time: " + (System.currentTimeMillis() - start));
+                    LOGGER.info("Match time: " + (System.currentTimeMillis() - start) + " y:" + Math.floor(y));
                     NyanDatabase.saveProcessedRngSeed(candidate, stepsBack, pos.x, pos.z);
                     match = true;
                     break;
@@ -186,8 +185,8 @@ public final class Slave {
                 stepped = prevSeed(stepped);
             }
             if (!match) {
-                LOGGER.info("marking as slow seed");
-                LOGGER.info("no match, marking as slow seed. Total time: " + (System.currentTimeMillis() - start));
+                LOGGER.info("");
+                LOGGER.info("marking as slow seed. no match, marking as slow seed. Total time: " + (System.currentTimeMillis() - start) + " y:" + Math.floor(y));
                 recentlySlowToProcess.add(candidate);
             }
             LOGGER.info("Candidate: " + candidate);
