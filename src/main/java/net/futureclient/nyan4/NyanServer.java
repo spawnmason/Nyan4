@@ -23,7 +23,7 @@ public class NyanServer {
 
     public NyanServer() throws Exception {
         this.server = new ServerSocket(3459, 1, InetAddress.getByName("192.168.69.2"));
-        this.socketIOExecutor = Executors.newFixedThreadPool(4);
+        this.socketIOExecutor = Executors.newSingleThreadExecutor();
         this.listenThread = new Thread(this::listen);
         this.listenThread.start();
         LOGGER.info("nyanserver listening");
@@ -44,6 +44,7 @@ public class NyanServer {
     private void io(Socket s) {
         try {
             LOGGER.info("got connection to nyanserver");
+            s.setSoTimeout(10000);
             DataInputStream in = new DataInputStream(s.getInputStream());
             DataOutputStream out = new DataOutputStream(s.getOutputStream());
             String secretToken = in.readUTF();
