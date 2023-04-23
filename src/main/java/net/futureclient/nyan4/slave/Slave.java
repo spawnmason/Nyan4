@@ -105,6 +105,11 @@ public final class Slave {
         return ((nextseed - 0xBL) * 0xdfe05bcb1365L) & ((1L << 48) - 1);
     }
 
+    private static boolean couldBeFromRandNextFloat(float f) {
+        int next24 = (int) (f * (1 << 24));
+        return Float.floatToRawIntBits(f) == Float.floatToRawIntBits(next24 / (float) (1 << 24));
+    }
+
     private static final int WOODLAND_BOUNDS = 23440;
 
     private static final Set<Long> recentlySlowToProcess = Collections.synchronizedSet(Collections.newSetFromMap(new LinkedHashMap<Long, Boolean>() {
@@ -151,6 +156,10 @@ public final class Slave {
             LOGGER.info("skipping troll item maybe already on ground");
             return;
         }
+        if (!couldBeFromRandNextFloat(rnd1) || !couldBeFromRandNextFloat(rnd2) || !couldBeFromRandNextFloat(rnd3)) {
+            LOGGER.info("skipping troll item not from a block drop");
+            return;
+        }
         final RandomReverser rev = new RandomReverser(new ArrayList<>());
         rev.addNextFloatCall(rnd1, rnd1, true, true);
         rev.addNextFloatCall(rnd2, rnd2, true, true);
@@ -166,6 +175,13 @@ public final class Slave {
                 //LOGGER.info("Saved RNG seed to database, and the processing is already cached");
                 continue;
             }
+
+
+            if (true) {
+                continue; // temp: skip all seed processing, let it be done remotely
+            }
+
+
             if (recentlySlowToProcess.contains(candidate)) {
                 recentlySlowToProcess.remove(candidate);
                 recentlySlowToProcess.add(candidate);
