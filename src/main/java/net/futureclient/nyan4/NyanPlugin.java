@@ -1,6 +1,5 @@
 package net.futureclient.nyan4;
 
-import net.futureclient.nyan4.slave.Slave;
 import net.futureclient.headless.eventbus.EventPriority;
 import net.futureclient.headless.eventbus.SubscribeEvent;
 import net.futureclient.headless.eventbus.events.PacketEvent;
@@ -8,6 +7,7 @@ import net.futureclient.headless.eventbus.events.UserGameEvent;
 import net.futureclient.headless.game.HeadlessMinecraft;
 import net.futureclient.headless.plugin.Plugin;
 import net.futureclient.headless.user.User;
+import net.futureclient.nyan4.slave.Slave;
 import net.minecraft.client.Minecraft;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -25,9 +25,16 @@ public final class NyanPlugin implements Plugin {
 
     public ScheduledExecutorService executor;
 
+    private NyanServer nyanServer;
+
     @Override
     public void onEnable(final PluginContext ctx) {
         this.executor = Executors.newScheduledThreadPool(1);
+        try {
+            this.nyanServer = new NyanServer();
+        } catch (Exception ex) {
+            LOGGER.warn("Failed to nyan server", ex);
+        }
         ctx.userManager().users().forEach(this::attachSlave);
         ctx.subscribers().register(this);
     }
@@ -39,6 +46,10 @@ public final class NyanPlugin implements Plugin {
             this.executor = null;
         } catch (final Throwable t) {
             LOGGER.warn("Failed to stop executor", t);
+        }
+        if (this.nyanServer != null) {
+            this.nyanServer.shutdown();
+            this.nyanServer = null;
         }
         ctx.subscribers().unregister(this);
         ctx.userManager().users().forEach(this::detachSlave);

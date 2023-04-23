@@ -4,6 +4,7 @@ import com.seedfinding.latticg.RandomReverser;
 import net.futureclient.headless.eventbus.events.PacketEvent;
 import net.futureclient.headless.game.HeadlessMinecraft;
 import net.futureclient.nyan4.NyanDatabase;
+import net.futureclient.nyan4.Woodland;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiDownloadTerrain;
 import net.minecraft.network.play.server.SPacketPlayerListItem;
@@ -178,7 +179,7 @@ public final class Slave {
                     LOGGER.info("Match at " + pos.x + "," + pos.z + " assuming rng was stepped by " + stepsBack);
                     LOGGER.info("In blocks that's between " + (pos.x * 16 * 80) + "," + (pos.z * 16 * 80) + " and " + ((pos.x * 80 + 79) * 16 + 15) + "," + ((pos.z * 80 + 79) * 16 + 15));
                     LOGGER.info("Match time: " + (System.currentTimeMillis() - start) + " y:" + Math.floor(y));
-                    NyanDatabase.saveProcessedRngSeed(candidate, stepsBack, pos.x, pos.z);
+                    NyanDatabase.saveProcessedRngSeeds(Collections.singletonList(new NyanDatabase.ProcessedSeed(candidate, stepsBack, pos.x, pos.z)));
                     match = true;
                     break;
                 }
@@ -195,24 +196,12 @@ public final class Slave {
 
     private static ChunkPos woodlandValid(long candidate) {
         for (int x = -WOODLAND_BOUNDS; x <= WOODLAND_BOUNDS; x++) {
-            long z = reverseWoodlandZGivenX(candidate, x);
+            long z = Woodland.reverseWoodlandZGivenX(candidate, x);
             if (z >= -WOODLAND_BOUNDS && z <= WOODLAND_BOUNDS) {
                 return new ChunkPos(x, (int) z);
             }
         }
         return null;
-    }
-
-    private static final long worldseed = -4172144997902289642L;
-
-    private static final long chunkZMultInv248 = 211541297333629L; // https://www.wolframalpha.com/input?i=132897987541%5E-1+mod+2%5E48
-
-    private static long woodlandMansionSeed(int chunkX, int chunkZ) { // from World and WoodlandMansion
-        return ((long) chunkX * 341873128712L + (long) chunkZ * 132897987541L + worldseed + (long) 10387319) & ((1L << 48) - 1); // rand drops highest 16 bits anyway
-    }
-
-    private static long reverseWoodlandZGivenX(long seed48Bits, int chunkX) {
-        return ((seed48Bits - worldseed - 10387319 - (long) chunkX * 341873128712L) * chunkZMultInv248) << 16 >> 16;
     }
 
     public void close() {
