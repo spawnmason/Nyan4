@@ -32,21 +32,25 @@ public class NyanDatabase {
         }
         // this won't happen all that often, but if it did, this should get its own thread that leaves the preparedstatement open i guess
         try (Connection connection = database.getConnection()) {
-            try (PreparedStatement stmt = connection.prepareStatement("INSERT INTO rng_seeds_raw(received_at, rng_seed) VALUES (?, ?) ON CONFLICT DO NOTHING")) {
-                stmt.setLong(1, timestamp);
-                stmt.setLong(2, rng_seed);
-                stmt.execute();
-            }
-            if (rng_seed == -1) {
-                return true;
-            }
-            try (PreparedStatement stmt = connection.prepareStatement("SELECT COUNT(*) FROM rng_seeds_processed WHERE rng_seed = ?")) {
-                stmt.setLong(1, rng_seed);
-                try (ResultSet rs = stmt.executeQuery()) {
-                    rs.next();
-                    return rs.getInt(1) > 0;
+            boolean processed = false;
+            if (rng_seed != -1) {
+                try (PreparedStatement stmt = connection.prepareStatement("SELECT COUNT(*) FROM rng_seeds_processed WHERE rng_seed = ?")) {
+                    stmt.setLong(1, rng_seed);
+                    try (ResultSet rs = stmt.executeQuery()) {
+                        rs.next();
+                        if (rs.getInt(1) > 0) {
+                            processed = true;
+                        }
+                    }
                 }
             }
+            try (PreparedStatement stmt = connection.prepareStatement("INSERT INTO rng_seeds_raw(received_at, rng_seed, processed) VALUES (?, ?, ?) ON CONFLICT DO NOTHING")) {
+                stmt.setLong(1, timestamp);
+                stmt.setLong(2, rng_seed);
+                stmt.setBoolean(3, processed);
+                stmt.execute();
+            }
+            return processed || rng_seed == -1;
         } catch (SQLException ex) {
             ex.printStackTrace();
             throw new RuntimeException(ex);
@@ -61,6 +65,10 @@ public class NyanDatabase {
                 stmt.setInt(3, x);
                 stmt.setInt(4, z);
                 stmt.execute();
+            }
+            try (PreparedStatement stmt = connection.prepareStatement("UPDATE rng_seeds_raw SET processed = TRUE WHERE NOT processed AND rng_seed = ?")) {
+                stmt.setLong(1, rng_seed);
+                stmt.executeUpdate();
             }
         } catch (SQLException ex) {
             ex.printStackTrace();

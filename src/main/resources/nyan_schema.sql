@@ -1,6 +1,7 @@
 CREATE TABLE IF NOT EXISTS rng_seeds_raw (
     received_at INTEGER NOT NULL,
     rng_seed   INTEGER NOT NULL,
+    processed BOOLEAN NOT NULL DEFAULT FALSE,
 
     UNIQUE(rng_seed, received_at) -- easier to merge these if we set a precedent of no duplicates ever
     CHECK(received_at > 0),
@@ -10,6 +11,7 @@ CREATE TABLE IF NOT EXISTS rng_seeds_raw (
     )
 );
 CREATE INDEX IF NOT EXISTS rng_seeds_raw_by_received_at ON rng_seeds_raw(received_at);
+CREATE INDEX IF NOT EXISTS rng_seeds_raw_not_yet_processed ON rng_seeds_raw(rng_seed) WHERE NOT processed;
 
 CREATE TABLE IF NOT EXISTS rng_seeds_processed (
     rng_seed INTEGER NOT NULL PRIMARY KEY,
