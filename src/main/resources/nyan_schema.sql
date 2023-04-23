@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS rng_seeds_raw (
     rng_seed   INTEGER NOT NULL,
     processed BOOLEAN NOT NULL DEFAULT FALSE,
 
-    UNIQUE(rng_seed, received_at) -- easier to merge these if we set a precedent of no duplicates ever
+    UNIQUE(rng_seed, received_at), -- easier to merge these if we set a precedent of no duplicates ever
     CHECK(received_at > 0),
     CHECK(
         (rng_seed = -1) -- rng_state -1 will mean that we were unable to determine it (latticg failed)
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS rng_seeds_processed (
     rng_seed INTEGER NOT NULL PRIMARY KEY,
     steps_back INTEGER NOT NULL,
     woodland_x INTEGER NOT NULL,
-    woodland_z INTEGER NOT NULL
+    woodland_z INTEGER NOT NULL,
 
     CHECK(rng_seed >= 0 AND rng_seed < (1 << 48)),
     CHECK(steps_back >= 0),
