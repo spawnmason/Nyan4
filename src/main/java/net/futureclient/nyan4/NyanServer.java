@@ -53,6 +53,7 @@ public class NyanServer {
                 return;
             }
             LongSet seeds = NyanDatabase.getSomeRngsToBeProcessed();
+            seeds.rem(-1);
             LOGGER.info("nyanserver sending " + seeds.size() + " seeds");
             out.writeInt(seeds.size());
             for (long seed : seeds) {
