@@ -81,6 +81,7 @@ public final class Slave {
                 if (!DimensionType.OVERWORLD.equals(dimension)) {
                     return;
                 }
+                LOGGER.info("Processing item drop at y {}", (int) y);
                 pluginExecutor.execute(() -> {
                     // process async
                     try {
