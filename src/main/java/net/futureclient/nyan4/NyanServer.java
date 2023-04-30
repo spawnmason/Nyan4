@@ -22,7 +22,7 @@ public class NyanServer {
     private final Executor socketIOExecutor;
 
     public NyanServer() throws Exception {
-        this.server = new ServerSocket(3459, 1, InetAddress.getByName("192.168.69.2"));
+        this.server = new ServerSocket(3459, 1, InetAddress.getByName("192.168.69.1"));
         this.socketIOExecutor = Executors.newSingleThreadExecutor();
         this.listenThread = new Thread(this::listen);
         this.listenThread.start();
