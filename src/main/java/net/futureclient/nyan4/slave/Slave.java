@@ -1,10 +1,15 @@
 package net.futureclient.nyan4.slave;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
 import com.seedfinding.latticg.RandomReverser;
 import net.futureclient.headless.eventbus.events.PacketEvent;
 import net.futureclient.headless.game.HeadlessMinecraft;
+import net.futureclient.nyan4.DatabaseJuggler;
 import net.futureclient.nyan4.NyanDatabase;
 import net.futureclient.nyan4.Woodland;
+import net.futureclient.nyan4.events.EventSeed;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiDownloadTerrain;
 import net.minecraft.network.play.server.SPacketPlayerListItem;
@@ -16,6 +21,7 @@ import net.minecraft.world.DimensionType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 
@@ -24,10 +30,13 @@ public final class Slave {
 
     public final Minecraft ctx;
     private final ScheduledExecutorService pluginExecutor;
+    private final DatabaseJuggler newDatabase;
+    private static final Gson GSON = new Gson();
 
-    public Slave(final HeadlessMinecraft ctx, ScheduledExecutorService pluginExecutor) {
+    public Slave(final HeadlessMinecraft ctx, ScheduledExecutorService pluginExecutor, DatabaseJuggler juggler) {
         this.ctx = ctx;
         this.pluginExecutor = pluginExecutor;
+        this.newDatabase = juggler;
     }
 
     public void onPacket(final PacketEvent.Receive event) {
@@ -142,7 +151,7 @@ public final class Slave {
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    private static void processItemDropAsync(final double x, final double y, final double z,
+    private void processItemDropAsync(final double x, final double y, final double z,
                                              final long timestamp) {
         if (checkAlreadyProcessed(new Vec3d(x, y, z))) {
             //LOGGER.info("skipping item drop already processed by another bot");
@@ -172,6 +181,14 @@ public final class Slave {
         }
         boolean match = false;
         for (long candidate : found) {
+            JsonObject jsonObject = GSON.toJsonTree(new EventSeed(candidate, timestamp, (short) this.ctx.player.dimension, "2b2t.org")).getAsJsonObject();
+            jsonObject.addProperty("type", "seed");
+            final String json = GSON.toJson(jsonObject);
+            try {
+                this.newDatabase.writer.writeEvent(json);
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
             if (NyanDatabase.saveData(timestamp, candidate)) {
                 //LOGGER.info("Saved RNG seed to database, and the processing is already cached");
                 continue;

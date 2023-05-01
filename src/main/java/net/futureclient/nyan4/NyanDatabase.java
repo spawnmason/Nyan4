@@ -21,7 +21,7 @@ import static net.futureclient.nyan4.Woodland.WOODLAND_BOUNDS;
 
 public class NyanDatabase {
     private static final Logger LOGGER = LogManager.getLogger("NyanDatabase");
-    private static final BasicDataSource database;
+    public static final BasicDataSource database;
 
     static {
         database = Database.connect(Paths.get("nyan.db"));
