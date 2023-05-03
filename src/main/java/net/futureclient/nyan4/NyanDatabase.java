@@ -21,9 +21,9 @@ import static net.futureclient.nyan4.Woodland.WOODLAND_BOUNDS;
 
 public class NyanDatabase {
     private static final Logger LOGGER = LogManager.getLogger("NyanDatabase");
-    public static final BasicDataSource database;
+    public final BasicDataSource database;
 
-    static {
+    {
         database = Database.connect(Paths.get("nyan.db"));
         database.setConnectionInitSqls(Arrays.asList(
                 "PRAGMA busy_timeout = 30000"
@@ -35,7 +35,7 @@ public class NyanDatabase {
         }
     }
 
-    public static boolean saveData(long timestamp, long rng_seed) {
+    public boolean saveData(long timestamp, long rng_seed) {
         if (timestamp < 0 || (rng_seed != -1 && rng_seed != (rng_seed & ((1L << 48) - 1)))) {
             throw new IllegalStateException();
         }
@@ -80,7 +80,7 @@ public class NyanDatabase {
         }
     }
 
-    public static void saveProcessedRngSeeds(List<ProcessedSeed> seeds) {
+    public void saveProcessedRngSeeds(List<ProcessedSeed> seeds) {
         seeds = new ArrayList<>(seeds); // slave passes in an unmodifiable list sigh
         seeds.removeIf(seed -> {
             if (Woodland.stepRng(seed.steps, Woodland.woodlandMansionSeed(seed.x, seed.z) ^ 0x5DEECE66DL) != seed.rng_seed || seed.x < -WOODLAND_BOUNDS || seed.x > WOODLAND_BOUNDS || seed.z < -WOODLAND_BOUNDS || seed.z > WOODLAND_BOUNDS || seed.steps < 0 || seed.steps > 2750000) {
@@ -117,7 +117,7 @@ public class NyanDatabase {
         }
     }
 
-    public static LongSet getSomeRngsToBeProcessed() {
+    public LongSet getSomeRngsToBeProcessed() {
         try (Connection connection = database.getConnection();
              PreparedStatement stmt = connection.prepareStatement("SELECT rng_seed FROM rng_seeds_raw WHERE NOT processed LIMIT 10000");
              ResultSet rs = stmt.executeQuery()) {

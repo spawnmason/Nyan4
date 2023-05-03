@@ -16,7 +16,7 @@ public class NyanPostgres {
         POOL.setDriverClassName("org.postgresql.Driver");
         POOL.setUrl(Objects.requireNonNull(System.getenv("PSQL_URL"), "Missing url for database"));
         POOL.setInitialSize(1);
-        POOL.setMaxTotal(75);
+        POOL.setMaxTotal(2);
         POOL.setAutoCommitOnReturn(true); // make absolutely sure
         POOL.setDefaultTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
         POOL.setRollbackOnReturn(true);

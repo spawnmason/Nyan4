@@ -28,6 +28,7 @@ public final class NyanPlugin implements Plugin {
 
     private NyanServer nyanServer;
     private DatabaseJuggler juggler;
+    public NyanDatabase database;
 
     @Override
     public void onEnable(final PluginContext ctx) {
@@ -37,7 +38,8 @@ public final class NyanPlugin implements Plugin {
         } catch (Exception ex) {
             LOGGER.warn("Failed to nyan server", ex);
         }
-        this.juggler = new DatabaseJuggler();
+        this.database = new NyanDatabase();
+        this.juggler = new DatabaseJuggler(database);
         ctx.userManager().users().forEach(this::attachSlave);
         ctx.subscribers().register(this);
     }
@@ -89,7 +91,7 @@ public final class NyanPlugin implements Plugin {
         final HeadlessMinecraft mc = user.getGame();
         if (mc != null) {
             LOGGER.info("Slave attached {}", user.getUsername());
-            this.slaves.put(mc, new Slave(mc, this.executor, this.juggler));
+            this.slaves.put(mc, new Slave(mc, this.executor, this.juggler, this.database));
         }
     }
 

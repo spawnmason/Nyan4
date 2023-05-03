@@ -31,13 +31,16 @@ public final class Slave {
     private final ScheduledExecutorService pluginExecutor;
     private final DatabaseJuggler newDatabase;
 
+    private final NyanDatabase tempDatabase; // only for rng_seeds_raw (which will be removed once we switch to events)
+
     private final Map<UUID, Long> recentlyLeftTheGame = new HashMap<>();
     private final Map<UUID, Long> recentlyJoinedTheGame = new HashMap<>();
 
-    public Slave(final HeadlessMinecraft ctx, ScheduledExecutorService pluginExecutor, DatabaseJuggler juggler) {
+    public Slave(final HeadlessMinecraft ctx, ScheduledExecutorService pluginExecutor, DatabaseJuggler juggler, NyanDatabase tempDatabase) {
         this.ctx = ctx;
         this.pluginExecutor = pluginExecutor;
         this.newDatabase = juggler;
+        this.tempDatabase = tempDatabase;
     }
 
     public void onPacket(final PacketEvent.Receive event) {
@@ -78,7 +81,7 @@ public final class Slave {
                 pluginExecutor.execute(() -> {
                     // process async
                     try {
-                        processItemDropAsync(x, y, z, recTime, (short) dimension.getId(), this.newDatabase);
+                        processItemDropAsync(x, y, z, recTime, (short) dimension.getId(), this.newDatabase, this.tempDatabase);
                     } catch (final Throwable t) {
                         LOGGER.error("Error while processing item drop", t);
                     }
@@ -155,7 +158,7 @@ public final class Slave {
 
     @SuppressWarnings("UnstableApiUsage")
     private static void processItemDropAsync(final double x, final double y, final double z,
-                                             final long timestamp, final short dimension, final DatabaseJuggler output) {
+                                             final long timestamp, final short dimension, final DatabaseJuggler output, final NyanDatabase tempDatabase) {
         if (checkAlreadyProcessed(new Vec3d(x, y, z))) {
             //LOGGER.info("skipping item drop already processed by another bot");
             return;
@@ -207,11 +210,11 @@ public final class Slave {
         output.writeEvent(event);
         if (found.length != 1) {
             LOGGER.info("Failed match " + x + " " + y + " " + z + " " + Arrays.toString(found));
-            NyanDatabase.saveData(timestamp, -1);
+            tempDatabase.saveData(timestamp, -1);
         }
         boolean match = false;
         for (long candidate : found) {
-            if (NyanDatabase.saveData(timestamp, candidate)) {
+            if (tempDatabase.saveData(timestamp, candidate)) {
                 //LOGGER.info("Saved RNG seed to database, and the processing is already cached");
                 continue;
             }
@@ -235,7 +238,7 @@ public final class Slave {
                     LOGGER.info("Match at " + pos.x + "," + pos.z + " assuming rng was stepped by " + stepsBack);
                     LOGGER.info("In blocks that's between " + (pos.x * 16 * 80) + "," + (pos.z * 16 * 80) + " and " + ((pos.x * 80 + 79) * 16 + 15) + "," + ((pos.z * 80 + 79) * 16 + 15));
                     LOGGER.info("Match time: " + (System.currentTimeMillis() - start) + " y:" + Math.floor(y));
-                    NyanDatabase.saveProcessedRngSeeds(Collections.singletonList(new NyanDatabase.ProcessedSeed(candidate, stepsBack, pos.x, pos.z)));
+                    tempDatabase.saveProcessedRngSeeds(Collections.singletonList(new NyanDatabase.ProcessedSeed(candidate, stepsBack, pos.x, pos.z)));
                     match = true;
                     break;
                 }
