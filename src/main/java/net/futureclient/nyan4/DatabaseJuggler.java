@@ -58,6 +58,8 @@ public class DatabaseJuggler {
     }
 
     public void shutdown() {
-        postgresReconnectThread.interrupt();
+        if (postgresReconnectThread != null) {
+            postgresReconnectThread.interrupt();
+        }
     }
 }
