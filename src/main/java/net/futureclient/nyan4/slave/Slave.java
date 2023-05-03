@@ -44,24 +44,7 @@ public final class Slave {
     public void onPacket(final PacketEvent.Receive event) {
         // NOTE: NETTY THREAD! NOT MAIN THREAD!
         out:
-        if (event.getPacket() instanceof SPacketPlayerListItem) {
-            final long recTime = System.currentTimeMillis();
-            final SPacketPlayerListItem packet = event.getPacket();
-            // extreme paranoia about someone leaving the server in the same tick that we establish a connection to the master
-            ctx.addScheduledTask(() -> {
-                // TODO: sqlite
-//                synchronized (this) {
-//                    if (connection == null) { // this null check *must* be inside this scheduled task
-//                        return;
-//                    }
-//                    if (packet.getAction() == SPacketPlayerListItem.Action.ADD_PLAYER || packet.getAction() == SPacketPlayerListItem.Action.REMOVE_PLAYER) {
-//                        for (SPacketPlayerListItem.AddPlayerData data : packet.getEntries()) {
-//                            connection.outgoing.add(connection.new PlayerJoinLeavePacket(data.getProfile(), packet.getAction() == SPacketPlayerListItem.Action.ADD_PLAYER));
-//                        }
-//                    }
-//                }
-            });
-        } else if (event.getPacket() instanceof SPacketSpawnObject) {
+        if (event.getPacket() instanceof SPacketSpawnObject) {
             final SPacketSpawnObject packet = event.getPacket();
             // the type for item entities is 2 and the data is always 1
             if (packet.getType() != 2 || packet.getData() != 1) {
