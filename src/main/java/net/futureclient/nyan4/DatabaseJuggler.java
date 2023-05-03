@@ -20,21 +20,25 @@ public class DatabaseJuggler {
             System.out.println("Can't connect to Postgres, falling back to SQLite");
             this.writer = new EventWriter.Sqlite(NyanDatabase.database);
             this.postgresReconnectThread = new Thread(() -> {
-               while (true) {
-                   try {
-                       Thread.sleep(5000);
-                       Optional<BasicDataSource> db = NyanPostgres.tryConnect();
-                       if (db.isPresent()) {
-                           this.writer = new EventWriter.Postgres(db.get());
-                           return;
-                       }
-                   } catch (Exception ex) {
-                       ex.printStackTrace();
-                   }
-               }
+                while (true) {
+                    try {
+                        Thread.sleep(5000);
+                        Optional<BasicDataSource> db = NyanPostgres.tryConnect();
+                        if (db.isPresent()) {
+                            this.writer = new EventWriter.Postgres(db.get());
+                            return;
+                        }
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                }
             }, "Patiently waiting for postgres to come back :(");
             this.postgresReconnectThread.setDaemon(true);
             this.postgresReconnectThread.start();
         }
+    }
+
+    public void shutdown() {
+        postgresReconnectThread.interrupt();
     }
 }

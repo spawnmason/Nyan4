@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 @Plugin.Metadata(name = "Nyan", version = "4.0")
 public final class NyanPlugin implements Plugin {
@@ -43,7 +44,11 @@ public final class NyanPlugin implements Plugin {
 
     @Override
     public void onDisable(final PluginContext ctx) {
+        ctx.subscribers().unregister(this);
+        ctx.userManager().users().forEach(this::detachSlave);
         try {
+            this.executor.shutdown();
+            this.executor.awaitTermination(1, TimeUnit.SECONDS);
             this.executor.shutdownNow();
             this.executor = null;
         } catch (final Throwable t) {
@@ -53,9 +58,10 @@ public final class NyanPlugin implements Plugin {
             this.nyanServer.shutdown();
             this.nyanServer = null;
         }
-        ctx.subscribers().unregister(this);
-        ctx.userManager().users().forEach(this::detachSlave);
-
+        if (this.juggler != null) {
+            this.juggler.shutdown();
+            this.juggler = null;
+        }
     }
 
     @SubscribeEvent
