@@ -1,7 +1,6 @@
 package net.futureclient.nyan4.slave;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.seedfinding.latticg.RandomReverser;
 import net.futureclient.headless.eventbus.events.PacketEvent;
@@ -9,7 +8,6 @@ import net.futureclient.headless.game.HeadlessMinecraft;
 import net.futureclient.nyan4.DatabaseJuggler;
 import net.futureclient.nyan4.NyanDatabase;
 import net.futureclient.nyan4.Woodland;
-import net.futureclient.nyan4.events.EventSeed;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiDownloadTerrain;
 import net.minecraft.network.play.server.SPacketPlayerListItem;
@@ -31,7 +29,6 @@ public final class Slave {
     public final Minecraft ctx;
     private final ScheduledExecutorService pluginExecutor;
     private final DatabaseJuggler newDatabase;
-    private static final Gson GSON = new Gson();
 
     public Slave(final HeadlessMinecraft ctx, ScheduledExecutorService pluginExecutor, DatabaseJuggler juggler) {
         this.ctx = ctx;
@@ -94,7 +91,7 @@ public final class Slave {
                 pluginExecutor.execute(() -> {
                     // process async
                     try {
-                        processItemDropAsync(x, y, z, recTime);
+                        processItemDropAsync(x, y, z, recTime, (short) dimension.getId(), this.newDatabase);
                     } catch (final Throwable t) {
                         LOGGER.error("Error while processing item drop", t);
                     }
@@ -115,9 +112,13 @@ public final class Slave {
         return ((nextseed - 0xBL) * 0xdfe05bcb1365L) & ((1L << 48) - 1);
     }
 
-    private static boolean couldBeFromRandNextFloat(float f) {
-        int next24 = (int) (f * (1 << 24));
-        return Float.floatToRawIntBits(f) == Float.floatToRawIntBits(next24 / (float) (1 << 24));
+    private static boolean couldBeFromRandNextFloat(float f, int rngNext24) {
+        return Float.floatToRawIntBits(f) == Float.floatToRawIntBits(rngNext24 / (float) (1 << 24));
+    }
+
+    private static strictfp boolean verifyBlockDrop(int rngNext24, int blockCoord, double itemDrop) {
+        double itemDropShouldBe = (double) blockCoord + ((double) (rngNext24 / (float) (1 << 24) * 0.5F) + 0.25D);
+        return Double.doubleToRawLongBits(itemDropShouldBe) == Double.doubleToRawLongBits(itemDrop);
     }
 
     private static final int WOODLAND_BOUNDS = 23440;
@@ -151,44 +152,68 @@ public final class Slave {
     }
 
     @SuppressWarnings("UnstableApiUsage")
-    private void processItemDropAsync(final double x, final double y, final double z,
-                                             final long timestamp) {
+    private static void processItemDropAsync(final double x, final double y, final double z,
+                                             final long timestamp, final short dimension, final DatabaseJuggler output) {
         if (checkAlreadyProcessed(new Vec3d(x, y, z))) {
             //LOGGER.info("skipping item drop already processed by another bot");
             return;
         }
         final long start = System.currentTimeMillis();
 
-        final float rnd1 = ((float) (x - (int) Math.floor(x) - 0.25d)) * 2;
-        final float rnd2 = ((float) (y - (int) Math.floor(y) - 0.25d)) * 2;
-        final float rnd3 = ((float) (z - (int) Math.floor(z) - 0.25d)) * 2;
+        final int blockX = (int) Math.floor(x);
+        final int blockY = (int) Math.floor(y);
+        final int blockZ = (int) Math.floor(z);
+        final float rnd1 = ((float) (x - blockX - 0.25d)) * 2;
+        final float rnd2 = ((float) (y - blockY - 0.25d)) * 2;
+        final float rnd3 = ((float) (z - blockZ - 0.25d)) * 2;
         if (rnd1 <= 0 || rnd1 >= 1 || rnd2 <= 0 || rnd2 >= 1 || rnd3 <= 0 || rnd3 >= 1) {
             LOGGER.info("skipping troll item maybe already on ground");
             return;
         }
-        if (!couldBeFromRandNextFloat(rnd1) || !couldBeFromRandNextFloat(rnd2) || !couldBeFromRandNextFloat(rnd3)) {
+        int next24_1 = (int) (rnd1 * (1 << 24)); // java.util.Random.nextFloat calls .next(24) which is an integer. let's verify that this is actually what happened, otherwise we can assume this item drop is not from a block drop
+        int next24_2 = (int) (rnd1 * (1 << 24));
+        int next24_3 = (int) (rnd1 * (1 << 24));
+        if (!couldBeFromRandNextFloat(rnd1, next24_1) || !couldBeFromRandNextFloat(rnd2, next24_2) || !couldBeFromRandNextFloat(rnd3, next24_3)) {
             LOGGER.info("skipping troll item not from a block drop");
             return;
+        }
+        if (!verifyBlockDrop(next24_1, blockX, x) || !verifyBlockDrop(next24_2, blockY, y) || !verifyBlockDrop(next24_3, blockZ, z)) {
+            LOGGER.fatal("sanity check failed, this should be impossible {} {} {}", Double.doubleToRawLongBits(x), Double.doubleToRawLongBits(y), Double.doubleToRawLongBits(z));
+            throw new IllegalStateException("sanity check " + Double.doubleToRawLongBits(x) + " " + Double.doubleToRawLongBits(y) + " " + Double.doubleToRawLongBits(z)); // should be literally impossible based on the above two debug checks
         }
         final RandomReverser rev = new RandomReverser(new ArrayList<>());
         rev.addNextFloatCall(rnd1, rnd1, true, true);
         rev.addNextFloatCall(rnd2, rnd2, true, true);
         rev.addNextFloatCall(rnd3, rnd3, true, true);
         final long[] found = rev.findAllValidSeeds().toArray();
+        JsonObject jsonObject = new JsonObject();
+        jsonObject.addProperty("type", "seed");
+        jsonObject.addProperty("timestamp", timestamp);
+        jsonObject.addProperty("server", "2b2t");
+        jsonObject.addProperty("blockX", blockX);
+        jsonObject.addProperty("blockY", blockY);
+        jsonObject.addProperty("blockZ", blockZ);
+        jsonObject.addProperty("rng1", next24_1);
+        jsonObject.addProperty("rng2", next24_2);
+        jsonObject.addProperty("rng3", next24_3);
+        jsonObject.addProperty("dimension", dimension);
+        JsonArray seeds = new JsonArray();
+        for (long seed : found) {
+            seeds.add(seed);
+        }
+        jsonObject.add("seeds", seeds);
+        try {
+            output.writer.writeEvent(jsonObject);
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+            LOGGER.warn(ex);
+        }
         if (found.length != 1) {
             LOGGER.info("Failed match " + x + " " + y + " " + z + " " + Arrays.toString(found));
             NyanDatabase.saveData(timestamp, -1);
         }
         boolean match = false;
         for (long candidate : found) {
-            JsonObject jsonObject = GSON.toJsonTree(new EventSeed(candidate, timestamp, (short) this.ctx.player.dimension, "2b2t.org")).getAsJsonObject();
-            jsonObject.addProperty("type", "seed");
-            final String json = GSON.toJson(jsonObject);
-            try {
-                this.newDatabase.writer.writeEvent(json);
-            } catch (SQLException ex) {
-                ex.printStackTrace();
-            }
             if (NyanDatabase.saveData(timestamp, candidate)) {
                 //LOGGER.info("Saved RNG seed to database, and the processing is already cached");
                 continue;

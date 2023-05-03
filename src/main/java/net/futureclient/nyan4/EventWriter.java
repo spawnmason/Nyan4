@@ -1,6 +1,7 @@
 package net.futureclient.nyan4;
 
-import org.apache.commons.dbcp2.BasicDataSource;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -8,7 +9,9 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 public interface EventWriter {
-    void writeEvent(String json) throws SQLException;
+    Gson GSON = new Gson();
+
+    void writeEvent(JsonObject json) throws SQLException;
 
     class Postgres implements EventWriter {
         private final DataSource db;
@@ -18,10 +21,10 @@ public interface EventWriter {
         }
 
         @Override
-        public void writeEvent(String json) throws SQLException {
+        public void writeEvent(JsonObject json) throws SQLException {
             try (Connection con = this.db.getConnection()) {
-                try (PreparedStatement statement = con.prepareStatement("INSERT INTO events_fallback VALUES (?)")) {
-                    statement.setString(1, json);
+                try (PreparedStatement statement = con.prepareStatement("INSERT INTO events VALUES (?)")) {
+                    statement.setString(1, GSON.toJson(json));
                 }
             }
         }
@@ -29,15 +32,16 @@ public interface EventWriter {
 
     class Sqlite implements EventWriter {
         private final DataSource db;
+
         public Sqlite(DataSource db) {
             this.db = db;
         }
 
         @Override
-        public void writeEvent(String json) throws SQLException {
+        public void writeEvent(JsonObject json) throws SQLException {
             try (Connection con = this.db.getConnection()) {
                 try (PreparedStatement statement = con.prepareStatement("INSERT INTO events_fallback VALUES (?)")) {
-                    statement.setString(1, json);
+                    statement.setString(1, GSON.toJson(json));
                 }
             }
         }
