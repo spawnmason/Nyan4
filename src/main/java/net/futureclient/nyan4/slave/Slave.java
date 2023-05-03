@@ -10,6 +10,7 @@ import net.futureclient.nyan4.NyanDatabase;
 import net.futureclient.nyan4.Woodland;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiDownloadTerrain;
+import net.minecraft.client.network.NetworkPlayerInfo;
 import net.minecraft.network.play.server.SPacketPlayerListItem;
 import net.minecraft.network.play.server.SPacketSpawnObject;
 import net.minecraft.util.math.BlockPos;
@@ -22,6 +23,7 @@ import org.apache.logging.log4j.Logger;
 import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public final class Slave {
     private static final Logger LOGGER = LogManager.getLogger("Slave");
@@ -29,6 +31,9 @@ public final class Slave {
     public final Minecraft ctx;
     private final ScheduledExecutorService pluginExecutor;
     private final DatabaseJuggler newDatabase;
+
+    private final Map<UUID, Long> recentlyLeftTheGame = new HashMap<>();
+    private final Map<UUID, Long> recentlyJoinedTheGame = new HashMap<>();
 
     public Slave(final HeadlessMinecraft ctx, ScheduledExecutorService pluginExecutor, DatabaseJuggler juggler) {
         this.ctx = ctx;
@@ -96,6 +101,21 @@ public final class Slave {
                         LOGGER.error("Error while processing item drop", t);
                     }
                 });
+            });
+        } else if (event.getPacket() instanceof SPacketPlayerListItem) {
+            SPacketPlayerListItem packet = event.getPacket();
+            long now = System.currentTimeMillis();
+            ctx.addScheduledTask(() -> {
+                for (SPacketPlayerListItem.AddPlayerData data : packet.getEntries()) {
+                    if (packet.getAction() == SPacketPlayerListItem.Action.ADD_PLAYER) {
+                        recentlyJoinedTheGame.put(data.getProfile().getId(), now);
+                        recentlyLeftTheGame.remove(data.getProfile().getId());
+                    }
+                    if (packet.getAction() == SPacketPlayerListItem.Action.ADD_PLAYER) {
+                        recentlyLeftTheGame.put(data.getProfile().getId(), now);
+                        recentlyJoinedTheGame.remove(data.getProfile().getId());
+                    }
+                }
             });
         }
     }
@@ -186,24 +206,24 @@ public final class Slave {
         rev.addNextFloatCall(rnd2, rnd2, true, true);
         rev.addNextFloatCall(rnd3, rnd3, true, true);
         final long[] found = rev.findAllValidSeeds().toArray();
-        JsonObject jsonObject = new JsonObject();
-        jsonObject.addProperty("type", "seed");
-        jsonObject.addProperty("timestamp", timestamp);
-        jsonObject.addProperty("server", "2b2t");
-        jsonObject.addProperty("blockX", blockX);
-        jsonObject.addProperty("blockY", blockY);
-        jsonObject.addProperty("blockZ", blockZ);
-        jsonObject.addProperty("rng1", next24_1);
-        jsonObject.addProperty("rng2", next24_2);
-        jsonObject.addProperty("rng3", next24_3);
-        jsonObject.addProperty("dimension", dimension);
+        JsonObject event = new JsonObject();
+        event.addProperty("type", "seed");
+        event.addProperty("timestamp", timestamp);
+        event.addProperty("server", "2b2t");
+        event.addProperty("blockX", blockX);
+        event.addProperty("blockY", blockY);
+        event.addProperty("blockZ", blockZ);
+        event.addProperty("rng1", next24_1);
+        event.addProperty("rng2", next24_2);
+        event.addProperty("rng3", next24_3);
+        event.addProperty("dimension", dimension);
         JsonArray seeds = new JsonArray();
         for (long seed : found) {
             seeds.add(seed);
         }
-        jsonObject.add("seeds", seeds);
+        event.add("seeds", seeds);
         try {
-            output.writer.writeEvent(jsonObject);
+            output.writer.writeEvent(event);
         } catch (SQLException ex) {
             ex.printStackTrace();
             LOGGER.warn(ex);
@@ -251,6 +271,22 @@ public final class Slave {
             }
             LOGGER.info("Candidate: " + candidate);
         }
+    }
+
+    public Map<UUID, Long> getRecentlyLeft() {
+        recentlyLeftTheGame.values().removeIf(timestamp -> timestamp < System.currentTimeMillis() - TimeUnit.SECONDS.toMillis(30));
+        return Collections.unmodifiableMap(recentlyLeftTheGame);
+    }
+
+    public Long whenDidThisUUIDJoin(UUID uuid) {
+        // if this UUID has left the game recently, then it'll be in recentlyLeft, and therefore this method won't be called
+        // otherwise, this map lookup will succeed
+        return recentlyJoinedTheGame.get(uuid);
+    }
+
+    public Collection<NetworkPlayerInfo> getOnlinePlayers() {
+        // same deal as whenDidThisUUIDJoin
+        return Collections.unmodifiableCollection(ctx.player.connection.getPlayerInfoMap());
     }
 
     private static ChunkPos woodlandValid(long candidate) {
