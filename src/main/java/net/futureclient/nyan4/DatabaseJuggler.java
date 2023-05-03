@@ -13,6 +13,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.stream.IntStream;
 
 public class DatabaseJuggler {
@@ -22,9 +23,12 @@ public class DatabaseJuggler {
     private final NyanDatabase nyanDatabase;
     private Thread postgresReconnectThread;
     private Thread backfillFromSqliteThread;
+    private final Consumer<JsonObject> eventDecorator;
+    private volatile boolean shutdown;
 
-    public DatabaseJuggler(NyanDatabase nyanDatabase) {
+    public DatabaseJuggler(NyanDatabase nyanDatabase, Consumer<JsonObject> eventDecorator) {
         this.nyanDatabase = nyanDatabase;
+        this.eventDecorator = eventDecorator;
         this.writer = new EventWriter.Sqlite(nyanDatabase.database);
         Optional<BasicDataSource> postgres = NyanPostgres.tryConnect();
         if (postgres.isPresent()) {
@@ -35,7 +39,7 @@ public class DatabaseJuggler {
             System.out.println("Can't connect to Postgres, falling back to SQLite");
             this.postgresReconnectThread = new Thread(() -> {
                 try {
-                    while (true) {
+                    while (!shutdown) {
                         try {
                             Thread.sleep(5000);
                             Optional<BasicDataSource> db = NyanPostgres.tryConnect();
@@ -64,7 +68,7 @@ public class DatabaseJuggler {
         // this prevents events from getting horribly out of order
         this.backfillFromSqliteThread = new Thread(() -> {
             try {
-                while (true) {
+                while (!shutdown) {
                     try {
                         Thread.sleep(10);
                         if (backfillFromSqlite(postgres)) {
@@ -148,7 +152,11 @@ public class DatabaseJuggler {
                     throw new IllegalStateException("is another nyan plugin modifying the postgres?");
                 }
             }
+            if (shutdown) {
+                return false;
+            }
             postgresConn.commit();
+            LOGGER.info("backfilled {} events from sqlite to postgres", jsonEvents.size());
             return false;
         } catch (SQLException ex) {
             throw new RuntimeException(ex);
@@ -182,6 +190,10 @@ public class DatabaseJuggler {
     }
 
     public void writeEvent(JsonObject event) {
+        if (shutdown) {
+            return;
+        }
+        eventDecorator.accept(event);
         synchronized (juggleLock) {
             try {
                 writer.writeEvent(event);
@@ -201,6 +213,7 @@ public class DatabaseJuggler {
     }
 
     public void shutdown() {
+        shutdown = true;
         if (postgresReconnectThread != null) {
             postgresReconnectThread.interrupt();
         }

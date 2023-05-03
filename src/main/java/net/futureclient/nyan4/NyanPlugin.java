@@ -12,6 +12,8 @@ import net.minecraft.client.Minecraft;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -39,7 +41,8 @@ public final class NyanPlugin implements Plugin {
             LOGGER.warn("Failed to nyan server", ex);
         }
         this.database = new NyanDatabase();
-        this.juggler = new DatabaseJuggler(database);
+        String nyan4id = new String(Base64.getUrlEncoder().encode(new SecureRandom().generateSeed(16))).replaceAll("=", "");
+        this.juggler = new DatabaseJuggler(database, event -> event.addProperty("nyan4id", nyan4id));
         ctx.userManager().users().forEach(this::attachSlave);
         ctx.subscribers().register(this);
     }
