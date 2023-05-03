@@ -213,12 +213,14 @@ public class DatabaseJuggler {
     }
 
     public void shutdown() {
-        shutdown = true;
-        if (postgresReconnectThread != null) {
-            postgresReconnectThread.interrupt();
-        }
-        if (backfillFromSqliteThread != null) {
-            backfillFromSqliteThread.interrupt();
+        synchronized (juggleLock) {
+            shutdown = true;
+            if (postgresReconnectThread != null) {
+                postgresReconnectThread.interrupt();
+            }
+            if (backfillFromSqliteThread != null) {
+                backfillFromSqliteThread.interrupt();
+            }
         }
     }
 }

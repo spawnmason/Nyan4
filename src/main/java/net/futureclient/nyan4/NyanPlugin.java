@@ -1,5 +1,6 @@
 package net.futureclient.nyan4;
 
+import com.google.gson.JsonObject;
 import net.futureclient.headless.eventbus.EventPriority;
 import net.futureclient.headless.eventbus.SubscribeEvent;
 import net.futureclient.headless.eventbus.events.PacketEvent;
@@ -45,6 +46,10 @@ public final class NyanPlugin implements Plugin {
         this.database = new NyanDatabase();
         String nyan4id = new String(Base64.getUrlEncoder().encode(new SecureRandom().generateSeed(16))).replaceAll("=", "");
         this.juggler = new DatabaseJuggler(database, event -> event.addProperty("nyan4id", nyan4id));
+        JsonObject event = new JsonObject();
+        event.addProperty("type", "startup");
+        event.addProperty("server", "2b2t");
+        this.juggler.writeEvent(event);
         this.tracker = new OnlinePlayerTracker();
         ctx.userManager().users().forEach(this::attachSlave);
         ctx.subscribers().register(this);
@@ -99,6 +104,13 @@ public final class NyanPlugin implements Plugin {
     }
 
     private void attachSlave(final User user) {
+        JsonObject event = new JsonObject();
+        event.addProperty("type", "attach");
+        event.addProperty("username", user.getUsername());
+        if (user.getUuid() != null) {
+            event.addProperty("uuid", user.getUuid());
+        }
+        this.juggler.writeEvent(event);
         final HeadlessMinecraft mc = user.getGame();
         if (mc != null) {
             LOGGER.info("Slave attached {}", user.getUsername());
@@ -107,6 +119,13 @@ public final class NyanPlugin implements Plugin {
     }
 
     private void detachSlave(final User user) {
+        JsonObject event = new JsonObject();
+        event.addProperty("type", "detach");
+        event.addProperty("username", user.getUsername());
+        if (user.getUuid() != null) {
+            event.addProperty("uuid", user.getUuid());
+        }
+        this.juggler.writeEvent(event);
         final HeadlessMinecraft mc = user.getGame();
         if (mc != null) {
             LOGGER.info("Slave detached {}", user.getUsername());
