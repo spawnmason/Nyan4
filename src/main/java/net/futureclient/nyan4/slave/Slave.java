@@ -20,7 +20,6 @@ import net.minecraft.world.DimensionType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -205,12 +204,7 @@ public final class Slave {
             seeds.add(seed);
         }
         event.add("seeds", seeds);
-        try {
-            output.writer.writeEvent(event);
-        } catch (SQLException ex) {
-            ex.printStackTrace();
-            LOGGER.warn(ex);
-        }
+        output.writeEvent(event);
         if (found.length != 1) {
             LOGGER.info("Failed match " + x + " " + y + " " + z + " " + Arrays.toString(found));
             NyanDatabase.saveData(timestamp, -1);

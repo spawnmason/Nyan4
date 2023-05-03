@@ -1,13 +1,18 @@
 package net.futureclient.nyan4;
 
+import com.google.gson.JsonObject;
 import org.apache.commons.dbcp2.BasicDataSource;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
+import java.sql.SQLException;
 import java.util.Optional;
 
 // TODO: handle random postgres failures
 // TODO: query all events from the fallback table when transitioning from sqlite
 public class DatabaseJuggler {
-    public volatile EventWriter writer;
+    private static final Logger LOGGER = LogManager.getLogger("DatabaseJuggler");
+    private volatile EventWriter writer;
     private final Thread postgresReconnectThread;
 
     public DatabaseJuggler() {
@@ -35,6 +40,20 @@ public class DatabaseJuggler {
             }, "Patiently waiting for postgres to come back :(");
             this.postgresReconnectThread.setDaemon(true);
             this.postgresReconnectThread.start();
+        }
+    }
+
+    public void writeEvent(JsonObject event) {
+        try {
+            writer.writeEvent(event);
+        } catch (SQLException e1) {
+            // postgres is down, but we'd rather not lose the event
+            LOGGER.fatal("Postgres is down, falling back to SQLite", e1);
+            try {
+                new EventWriter.Sqlite(NyanDatabase.database).writeEvent(event);
+            } catch (SQLException e2) {
+                LOGGER.fatal("SQLite is down too??", e2);
+            }
         }
     }
 
