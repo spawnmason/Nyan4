@@ -7,14 +7,12 @@ import net.futureclient.headless.eventbus.events.PacketEvent;
 import net.futureclient.headless.game.HeadlessMinecraft;
 import net.futureclient.nyan4.DatabaseJuggler;
 import net.futureclient.nyan4.NyanDatabase;
-import net.futureclient.nyan4.Woodland;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiDownloadTerrain;
 import net.minecraft.client.network.NetworkPlayerInfo;
 import net.minecraft.network.play.server.SPacketPlayerListItem;
 import net.minecraft.network.play.server.SPacketSpawnObject;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.DimensionType;
 import org.apache.logging.log4j.LogManager;
@@ -109,14 +107,6 @@ public final class Slave {
         return ctx.player.isSpectator() || Math.abs(ctx.player.posX) <= 16 && Math.abs(ctx.player.posZ) <= 16;
     }
 
-    private static long nextSeed(long seed) {
-        return (seed * 0x5DEECE66DL + 0xBL) & ((1L << 48) - 1);
-    }
-
-    private static long prevSeed(long nextseed) {
-        return ((nextseed - 0xBL) * 0xdfe05bcb1365L) & ((1L << 48) - 1);
-    }
-
     private static boolean couldBeFromRandNextFloat(float f, int rngNext24) {
         return Float.floatToRawIntBits(f) == Float.floatToRawIntBits(rngNext24 / (float) (1 << 24));
     }
@@ -125,15 +115,6 @@ public final class Slave {
         double itemDropShouldBe = (double) blockCoord + ((double) (rngNext24 / (float) (1 << 24) * 0.5F) + 0.25D);
         return Double.doubleToRawLongBits(itemDropShouldBe) == Double.doubleToRawLongBits(itemDrop);
     }
-
-    private static final int WOODLAND_BOUNDS = 23440;
-
-    private static final Set<Long> recentlySlowToProcess = Collections.synchronizedSet(Collections.newSetFromMap(new LinkedHashMap<Long, Boolean>() {
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<Long, Boolean> eldest) {
-            return size() > 100;
-        }
-    })); // dont store in sqlite obviously, because we are bailing out after only 10k steps, that isn't permanent its just not wanting to use much cpu
 
     private static final Set<Vec3d> recentlyProcessed = Collections.newSetFromMap(new LinkedHashMap<Vec3d, Boolean>() { // TODO calling super() with accessOrder = true might be more elegant i guess?
         @Override
@@ -163,7 +144,6 @@ public final class Slave {
             //LOGGER.info("skipping item drop already processed by another bot");
             return;
         }
-        final long start = System.currentTimeMillis();
 
         final int blockX = (int) Math.floor(x);
         final int blockY = (int) Math.floor(y);
@@ -212,44 +192,8 @@ public final class Slave {
             LOGGER.info("Failed match " + x + " " + y + " " + z + " " + Arrays.toString(found));
             tempDatabase.saveData(timestamp, -1);
         }
-        boolean match = false;
         for (long candidate : found) {
-            if (tempDatabase.saveData(timestamp, candidate)) {
-                //LOGGER.info("Saved RNG seed to database, and the processing is already cached");
-                continue;
-            }
-
-
-            if (true) {
-                continue; // temp: skip all seed processing, let it be done remotely
-            }
-
-
-            if (recentlySlowToProcess.contains(candidate)) {
-                recentlySlowToProcess.remove(candidate);
-                recentlySlowToProcess.add(candidate);
-                continue;
-            }
-            long stepped = candidate;
-            for (int stepsBack = 0; stepsBack < 400; stepsBack++) {
-                long meow = stepped ^ 0x5DEECE66DL;
-                ChunkPos pos = woodlandValid(meow); // not a real chunkpos its *80
-                if (pos != null) {
-                    LOGGER.info("Match at " + pos.x + "," + pos.z + " assuming rng was stepped by " + stepsBack);
-                    LOGGER.info("In blocks that's between " + (pos.x * 16 * 80) + "," + (pos.z * 16 * 80) + " and " + ((pos.x * 80 + 79) * 16 + 15) + "," + ((pos.z * 80 + 79) * 16 + 15));
-                    LOGGER.info("Match time: " + (System.currentTimeMillis() - start) + " y:" + Math.floor(y));
-                    tempDatabase.saveProcessedRngSeeds(Collections.singletonList(new NyanDatabase.ProcessedSeed(candidate, stepsBack, pos.x, pos.z)));
-                    match = true;
-                    break;
-                }
-                stepped = prevSeed(stepped);
-            }
-            if (!match) {
-                LOGGER.info("");
-                LOGGER.info("marking as slow seed. no match, marking as slow seed. Total time: " + (System.currentTimeMillis() - start) + " y:" + Math.floor(y));
-                recentlySlowToProcess.add(candidate);
-            }
-            LOGGER.info("Candidate: " + candidate);
+            tempDatabase.saveData(timestamp, candidate);
         }
     }
 
@@ -267,16 +211,6 @@ public final class Slave {
     public Collection<NetworkPlayerInfo> getOnlinePlayers() {
         // same deal as whenDidThisUUIDJoin
         return Collections.unmodifiableCollection(ctx.player.connection.getPlayerInfoMap());
-    }
-
-    private static ChunkPos woodlandValid(long candidate) {
-        for (int x = -WOODLAND_BOUNDS; x <= WOODLAND_BOUNDS; x++) {
-            long z = Woodland.reverseWoodlandZGivenX(candidate, x);
-            if (z >= -WOODLAND_BOUNDS && z <= WOODLAND_BOUNDS) {
-                return new ChunkPos(x, (int) z);
-            }
-        }
-        return null;
     }
 
     public void close() {
