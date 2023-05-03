@@ -3,6 +3,7 @@ package net.futureclient.nyan4;
 import net.futureclient.headless.eventbus.EventPriority;
 import net.futureclient.headless.eventbus.SubscribeEvent;
 import net.futureclient.headless.eventbus.events.PacketEvent;
+import net.futureclient.headless.eventbus.events.TickEvent;
 import net.futureclient.headless.eventbus.events.UserGameEvent;
 import net.futureclient.headless.game.HeadlessMinecraft;
 import net.futureclient.headless.plugin.Plugin;
@@ -31,6 +32,7 @@ public final class NyanPlugin implements Plugin {
     private NyanServer nyanServer;
     private DatabaseJuggler juggler;
     public NyanDatabase database;
+    private OnlinePlayerTracker tracker;
 
     @Override
     public void onEnable(final PluginContext ctx) {
@@ -43,6 +45,7 @@ public final class NyanPlugin implements Plugin {
         this.database = new NyanDatabase();
         String nyan4id = new String(Base64.getUrlEncoder().encode(new SecureRandom().generateSeed(16))).replaceAll("=", "");
         this.juggler = new DatabaseJuggler(database, event -> event.addProperty("nyan4id", nyan4id));
+        this.tracker = new OnlinePlayerTracker();
         ctx.userManager().users().forEach(this::attachSlave);
         ctx.subscribers().register(this);
     }
@@ -88,6 +91,11 @@ public final class NyanPlugin implements Plugin {
                 slave.onPacket(event);
             }
         }
+    }
+
+    @SubscribeEvent
+    public void onTick(final TickEvent.Pre event) {
+        this.tracker.tick(this.slaves.values()).forEach(this.juggler::writeEvent);
     }
 
     private void attachSlave(final User user) {
