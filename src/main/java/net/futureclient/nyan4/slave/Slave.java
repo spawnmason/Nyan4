@@ -94,7 +94,7 @@ public final class Slave {
                         recentlyJoinedTheGame.put(data.getProfile().getId(), now);
                         recentlyLeftTheGame.remove(data.getProfile().getId());
                     }
-                    if (packet.getAction() == SPacketPlayerListItem.Action.ADD_PLAYER) {
+                    if (packet.getAction() == SPacketPlayerListItem.Action.REMOVE_PLAYER) {
                         recentlyLeftTheGame.put(data.getProfile().getId(), now);
                         recentlyJoinedTheGame.remove(data.getProfile().getId());
                     }
