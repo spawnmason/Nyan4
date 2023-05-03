@@ -44,6 +44,10 @@ public class OnlinePlayerTracker {
             event.addProperty("max_join_timestamp", maxJoinTimestamp);
             // paranoia: record all possible timestamps
             // i can think of edge cases where we might want any of these three lol
+
+            // tracker_timestamp: when all slaves get kicked from 2b, then the min and max join timestamps will be null (aka max_value and min_value), but we still want to know approx when that happened, so, tracker_timestamp is useful
+            // min_join_timestamp: in the normal case, this is the one we'll want to rely on
+            // max_join_timestamp: tulpa_1 and tulpa_2 observe kenzie join at the same-ish time. after a short time, kenzie leaves and rejoins. tulpa_1 is lagging and doesn't observe this for a few seconds. but tulpa_2 sees it. we want to use tulpa_2's join timestamp (max_join_timestamp) rather than the older (not yet updated) tulpa_1 join timestamp (min_join_timestamp)
             events.add(event);
         }
         for (OnlinePlayer player : removedSinceLastTick) {
