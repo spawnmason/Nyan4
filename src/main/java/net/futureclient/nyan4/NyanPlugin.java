@@ -52,6 +52,7 @@ public final class NyanPlugin implements Plugin {
         JsonObject event = new JsonObject();
         event.addProperty("type", "startup");
         event.addProperty("server", "2b2t");
+        event.addProperty("timestamp", System.currentTimeMillis());
         this.juggler.writeEvent(event);
         this.tracker = new OnlinePlayerTracker();
         ctx.userManager().users().forEach(this::attachSlave);
@@ -113,6 +114,7 @@ public final class NyanPlugin implements Plugin {
         if (user.getUuid() != null) {
             event.addProperty("uuid", user.getUuid());
         }
+        event.addProperty("timestamp", System.currentTimeMillis());
         this.juggler.writeEvent(event);
         final HeadlessMinecraft mc = user.getGame();
         if (mc != null) {
@@ -128,6 +130,7 @@ public final class NyanPlugin implements Plugin {
         if (user.getUuid() != null) {
             event.addProperty("uuid", user.getUuid());
         }
+        event.addProperty("timestamp", System.currentTimeMillis());
         this.juggler.writeEvent(event);
         final HeadlessMinecraft mc = user.getGame();
         if (mc != null) {
