@@ -15,4 +15,10 @@ dependencies {
     shade (group: 'com.seedfinding', name: 'latticg', version: '1.06') {
         transitive = false
     }
+    shade ('org.postgresql:postgresql:42.2.27') {
+        transitive = false
+    }
+    shade ('org.apache.commons:commons-dbcp2:2.7.0') {
+        transitive = false
+    }
 }

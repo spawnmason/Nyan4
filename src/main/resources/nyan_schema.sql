@@ -24,3 +24,7 @@ CREATE TABLE IF NOT EXISTS rng_seeds_processed (
     CHECK(woodland_x >= -23440 AND woodland_x <= 23440),
     CHECK(woodland_z >= -23440 AND woodland_z <= 23440)
 );
+
+CREATE TABLE IF NOT EXISTS events_fallback (
+    json TEXT NOT NULL
+)
