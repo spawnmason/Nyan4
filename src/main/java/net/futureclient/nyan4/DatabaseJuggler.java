@@ -163,7 +163,7 @@ public class DatabaseJuggler {
         }
     }
 
-    private int getLatestSqliteEvent(NyanDatabase database) {
+    private int getLatestSqliteEvent(NyanDatabase database) throws SQLException {
         try (Connection conn = database.database.getConnection();
              PreparedStatement stmt = conn.prepareStatement("SELECT COALESCE(MAX(rowid), 0) FROM events_fallback");
              ResultSet rs = stmt.executeQuery()) {
@@ -171,12 +171,10 @@ public class DatabaseJuggler {
                 throw new IllegalStateException("should be impossible");
             }
             return rs.getInt(1);
-        } catch (SQLException ex) {
-            throw new RuntimeException(ex);
         }
     }
 
-    private int getSqliteBackfillProgress(Connection postgresConn) {
+    private int getSqliteBackfillProgress(Connection postgresConn) throws SQLException {
         try (PreparedStatement stmt = postgresConn.prepareStatement("SELECT last_rowid_processed FROM sqlite_backfill_progress");
              ResultSet rs = stmt.executeQuery()) {
             if (!rs.next()) {
@@ -184,8 +182,6 @@ public class DatabaseJuggler {
                 throw new IllegalStateException(); // this will just exit the backfillFromSqliteThread, which is fine
             }
             return rs.getInt(1);
-        } catch (SQLException ex) {
-            throw new RuntimeException(ex);
         }
     }
 
@@ -202,11 +198,9 @@ public class DatabaseJuggler {
                     // postgres is down, but we'd rather not lose the event
                     LOGGER.fatal("Postgres is down, falling back to SQLite", e1);
                     this.writer = new EventWriter.Sqlite(nyanDatabase.database);
-                    try {
-                        writer.writeEvent(event);
-                    } catch (SQLException e2) {
-                        LOGGER.fatal("SQLite is down too??", e2);
-                    }
+                    writeEvent(event);
+                } else {
+                    LOGGER.fatal("SQLite fail", e1);
                 }
             }
         }

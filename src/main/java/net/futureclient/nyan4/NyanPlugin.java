@@ -14,6 +14,7 @@ import net.minecraft.client.Minecraft;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.lang.management.ManagementFactory;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Map;
@@ -44,7 +45,8 @@ public final class NyanPlugin implements Plugin {
             LOGGER.warn("Failed to nyan server", ex);
         }
         this.database = new NyanDatabase();
-        String nyan4id = new String(Base64.getUrlEncoder().encode(new SecureRandom().generateSeed(16))).replaceAll("=", "");
+        String nyan4id = ManagementFactory.getRuntimeMXBean().getName() + ":" + new String(Base64.getUrlEncoder().encode(new SecureRandom().generateSeed(16))).replaceAll("=", "");
+        // ^ looks like 12345@blahaj:123abcABC (the first few numbers are the PID)
         this.juggler = new DatabaseJuggler(database, event -> event.addProperty("nyan4id", nyan4id));
         JsonObject event = new JsonObject();
         event.addProperty("type", "startup");
