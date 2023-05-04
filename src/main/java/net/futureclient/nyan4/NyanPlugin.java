@@ -102,8 +102,8 @@ public final class NyanPlugin implements Plugin {
     }
 
     @SubscribeEvent
-    public void onTick(final TickEvent.Pre event) {
-        this.tracker.tick(this.slaves.values().stream().filter(slave -> slave.ctx.player != null).collect(Collectors.toList())).forEach(this.juggler::writeEvent);
+    public void onTick(final TickEvent.Tasks event) {
+        this.tracker.tick(this.slaves.values().stream().filter(slave -> slave.ctx.player != null && !slave.probablyInQueue()).collect(Collectors.toList())).forEach(this.juggler::writeEvent);
     }
 
     private void attachSlave(final User user) {
@@ -117,7 +117,7 @@ public final class NyanPlugin implements Plugin {
         final HeadlessMinecraft mc = user.getGame();
         if (mc != null) {
             LOGGER.info("Slave attached {}", user.getUsername());
-            this.slaves.put(mc, new Slave(mc, this.executor, this.juggler, this.database));
+            this.slaves.put(mc, new Slave(mc, this.executor, this.juggler, this.database, user.getUsername()));
         }
     }
 

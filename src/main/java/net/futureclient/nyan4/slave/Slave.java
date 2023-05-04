@@ -33,12 +33,14 @@ public final class Slave {
 
     private final Map<UUID, Long> recentlyLeftTheGame = new HashMap<>();
     private final Map<UUID, Long> recentlyJoinedTheGame = new HashMap<>();
+    public final String whoamiForDebug;
 
-    public Slave(final HeadlessMinecraft ctx, ScheduledExecutorService pluginExecutor, DatabaseJuggler juggler, NyanDatabase tempDatabase) {
+    public Slave(final HeadlessMinecraft ctx, ScheduledExecutorService pluginExecutor, DatabaseJuggler juggler, NyanDatabase tempDatabase, String whoamiForDebug) {
         this.ctx = ctx;
         this.pluginExecutor = pluginExecutor;
         this.newDatabase = juggler;
         this.tempDatabase = tempDatabase;
+        this.whoamiForDebug = whoamiForDebug;
     }
 
     public void onPacket(final PacketEvent.Receive event) {
@@ -89,21 +91,30 @@ public final class Slave {
             SPacketPlayerListItem packet = event.getPacket();
             long now = System.currentTimeMillis();
             ctx.addScheduledTask(() -> {
+                if (probablyInQueue()) {
+                    return;
+                }
                 for (SPacketPlayerListItem.AddPlayerData data : packet.getEntries()) {
                     if (packet.getAction() == SPacketPlayerListItem.Action.ADD_PLAYER) {
                         recentlyJoinedTheGame.put(data.getProfile().getId(), now);
                         recentlyLeftTheGame.remove(data.getProfile().getId());
+                        if ("100010".equals(data.getProfile().getName())) {
+                            LOGGER.warn("100010 joined the game from the pov of {}", whoamiForDebug);
+                        }
                     }
                     if (packet.getAction() == SPacketPlayerListItem.Action.REMOVE_PLAYER) {
                         recentlyLeftTheGame.put(data.getProfile().getId(), now);
                         recentlyJoinedTheGame.remove(data.getProfile().getId());
+                        if ("100010".equals(data.getProfile().getName())) {
+                            LOGGER.warn("100010 left the game from the pov of {}", whoamiForDebug);
+                        }
                     }
                 }
             });
         }
     }
 
-    private boolean probablyInQueue() {
+    public boolean probablyInQueue() {
         return ctx.player.isSpectator() || Math.abs(ctx.player.posX) <= 16 && Math.abs(ctx.player.posZ) <= 16;
     }
 

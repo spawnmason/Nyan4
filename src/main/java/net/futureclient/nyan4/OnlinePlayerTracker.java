@@ -4,10 +4,13 @@ import com.google.gson.JsonObject;
 import com.mojang.authlib.GameProfile;
 import net.futureclient.nyan4.slave.Slave;
 import net.minecraft.client.network.NetworkPlayerInfo;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.*;
 
 public class OnlinePlayerTracker {
+    private static final Logger LOGGER = LogManager.getLogger("OnlinePlayerTracker");
     private Set<OnlinePlayer> onlinePlayerSet = new HashSet<>();
 
     public synchronized List<JsonObject> tick(Collection<Slave> currentlyOnline) {
@@ -35,6 +38,10 @@ public class OnlinePlayerTracker {
             long maxJoinTimestamp = Long.MIN_VALUE;
             for (Slave slave : currentlyOnline) {
                 Long joinTimestamp = slave.whenDidThisUUIDJoin(player.uuid);
+                if (player.username.equals("100010")) {
+                    LOGGER.warn("100010 info {} {} {}", slave.getRecentlyLeft().get(UUID.fromString("1e567ed0-1eba-4262-9073-085c23897dd9")), slave.whenDidThisUUIDJoin(UUID.fromString("1e567ed0-1eba-4262-9073-085c23897dd9")), slave.getOnlinePlayers().stream().filter(net -> net.getGameProfile().getName().equals("100010")).count());
+                    LOGGER.warn("join timestamp of 100010 from pov of {} was {}", slave.whoamiForDebug, joinTimestamp);
+                }
                 if (joinTimestamp != null) {
                     minJoinTimestamp = Math.min(minJoinTimestamp, joinTimestamp);
                     maxJoinTimestamp = Math.max(maxJoinTimestamp, joinTimestamp);
