@@ -39,12 +39,12 @@ public final class NyanPlugin implements Plugin {
     @Override
     public void onEnable(final PluginContext ctx) {
         this.executor = Executors.newScheduledThreadPool(1);
+        this.database = new NyanDatabase();
         try {
-            this.nyanServer = new NyanServer();
+            this.nyanServer = new NyanServer(this.database);
         } catch (Exception ex) {
             LOGGER.warn("Failed to nyan server", ex);
         }
-        this.database = new NyanDatabase();
         String nyan4id = ManagementFactory.getRuntimeMXBean().getName() + ":" + new String(Base64.getUrlEncoder().encode(new SecureRandom().generateSeed(16))).replaceAll("=", "");
         // ^ looks like 12345@blahaj:123abcABC (the first few numbers are the PID)
         this.juggler = new DatabaseJuggler(database, event -> event.addProperty("nyan4id", nyan4id));

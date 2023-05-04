@@ -20,8 +20,10 @@ public class NyanServer {
     private final ServerSocket server;
     private final Thread listenThread;
     private final Executor socketIOExecutor;
+    private final NyanDatabase database;
 
-    public NyanServer() throws Exception {
+    public NyanServer(NyanDatabase database) throws Exception {
+        this.database = database;
         this.server = new ServerSocket(3459, 1, InetAddress.getByName("192.168.69.1"));
         this.socketIOExecutor = Executors.newSingleThreadExecutor();
         this.listenThread = new Thread(this::listen);
@@ -52,7 +54,7 @@ public class NyanServer {
                 LOGGER.info("wrong token");
                 return;
             }
-            LongSet seeds = NyanDatabase.getSomeRngsToBeProcessed();
+            LongSet seeds = database.getSomeRngsToBeProcessed();
             seeds.rem(-1);
             LOGGER.info("nyanserver sending " + seeds.size() + " seeds");
             out.writeInt(seeds.size());
@@ -75,7 +77,7 @@ public class NyanServer {
                 processed.add(new NyanDatabase.ProcessedSeed(seed, steps, x, z));
             }
             LOGGER.info("received all processed seeds");
-            NyanDatabase.saveProcessedRngSeeds(processed);
+            database.saveProcessedRngSeeds(processed);
             LOGGER.info("saved all processed seeds to db");
         } catch (IOException ex) {
             LOGGER.warn("IO failed", ex);

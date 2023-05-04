@@ -27,4 +27,4 @@ CREATE TABLE IF NOT EXISTS rng_seeds_processed (
 
 CREATE TABLE IF NOT EXISTS events_fallback (
     json TEXT NOT NULL
-)
+);
