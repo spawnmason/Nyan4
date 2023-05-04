@@ -195,7 +195,7 @@ public final class Slave {
         event.addProperty("dimension", dimension);
         JsonArray seeds = new JsonArray();
         for (long seed : found) {
-            seeds.add(seed);
+            seeds.add(Long.toString(seed));
         }
         event.add("seeds", seeds);
         output.writeEvent(event);
