@@ -156,8 +156,8 @@ public final class Slave {
             return;
         }
         int next24_1 = (int) (rnd1 * (1 << 24)); // java.util.Random.nextFloat calls .next(24) which is an integer. let's verify that this is actually what happened, otherwise we can assume this item drop is not from a block drop
-        int next24_2 = (int) (rnd1 * (1 << 24));
-        int next24_3 = (int) (rnd1 * (1 << 24));
+        int next24_2 = (int) (rnd2 * (1 << 24));
+        int next24_3 = (int) (rnd3 * (1 << 24));
         if (!couldBeFromRandNextFloat(rnd1, next24_1) || !couldBeFromRandNextFloat(rnd2, next24_2) || !couldBeFromRandNextFloat(rnd3, next24_3)) {
             LOGGER.info("skipping troll item not from a block drop");
             return;

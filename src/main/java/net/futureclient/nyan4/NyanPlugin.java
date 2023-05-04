@@ -22,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Plugin.Metadata(name = "Nyan", version = "4.0")
 public final class NyanPlugin implements Plugin {
@@ -102,7 +103,7 @@ public final class NyanPlugin implements Plugin {
 
     @SubscribeEvent
     public void onTick(final TickEvent.Pre event) {
-        this.tracker.tick(this.slaves.values()).forEach(this.juggler::writeEvent);
+        this.tracker.tick(this.slaves.values().stream().filter(slave -> slave.ctx.player != null).collect(Collectors.toList())).forEach(this.juggler::writeEvent);
     }
 
     private void attachSlave(final User user) {
