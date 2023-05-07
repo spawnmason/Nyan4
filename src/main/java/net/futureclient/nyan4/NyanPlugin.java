@@ -19,10 +19,8 @@ import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.Queue;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 @Plugin.Metadata(name = "Nyan", version = "4.0")
@@ -40,6 +38,9 @@ public final class NyanPlugin implements Plugin {
     private ServerTracker serverTracker;
     private long lastHeartBeatMillis = 0L;
 
+    private final BlockingQueue<JsonObject> eventQueue = new LinkedBlockingQueue<>();
+    private Thread eventWriterThread;
+
     @Override
     public void onEnable(final PluginContext ctx) {
         this.executor = Executors.newScheduledThreadPool(1);
@@ -52,11 +53,24 @@ public final class NyanPlugin implements Plugin {
         String nyan4id = ManagementFactory.getRuntimeMXBean().getName() + ":" + new String(Base64.getUrlEncoder().encode(new SecureRandom().generateSeed(16))).replaceAll("=", "");
         // ^ looks like 12345@blahaj:123abcABC (the first few numbers are the PID)
         this.juggler = new DatabaseJuggler(database, event -> event.addProperty("nyan4id", nyan4id));
+        this.eventWriterThread = new Thread(() -> {
+            while (true) {
+                try {
+                    JsonObject event = this.eventQueue.take();
+                    this.juggler.writeEvent(event);
+                } catch (InterruptedException ex) {
+                    return;
+                }
+            }
+        });
+        this.eventWriterThread.setDaemon(true);
+        this.eventWriterThread.start();
+
+        // Currently serves no purpose but may be useful in the future
         JsonObject event = new JsonObject();
-        event.addProperty("type", "startup");
-        event.addProperty("server", "2b2t");
+        event.addProperty("type", "plugin_startup");
         event.addProperty("timestamp", System.currentTimeMillis());
-        this.juggler.writeEvent(event);
+        this.eventQueue.add(event);
         this.playerTracker = new OnlinePlayerTracker();
         this.serverTracker = new ServerTracker();
         ctx.userManager().users().forEach(this::attachSlave);
@@ -83,6 +97,7 @@ public final class NyanPlugin implements Plugin {
             this.juggler.shutdown();
             this.juggler = null;
         }
+        this.eventWriterThread.interrupt();
     }
 
     @SubscribeEvent
@@ -112,19 +127,19 @@ public final class NyanPlugin implements Plugin {
 
     @SubscribeEvent
     public void onTick(final TickEvent.Tasks event) {
-        this.playerTracker.tick(getOnlineSlaves()).forEach(this.juggler::writeEvent);
+        this.eventQueue.addAll(this.playerTracker.tick(getOnlineSlaves()));
     }
 
     @SubscribeEvent
     public void onGlobalTick(final TickEvent.Global event) {
-        this.serverTracker.tick(getOnlineSlaves()).forEach(this.juggler::writeEvent);
+        this.eventQueue.addAll(this.serverTracker.tick(getOnlineSlaves()));
 
         final long now = System.currentTimeMillis();
         if (now - lastHeartBeatMillis > 5000) {
             JsonObject json = new JsonObject();
             json.addProperty("type", "heartbeat");
             json.addProperty("timestamp", now);
-            this.juggler.writeEvent(json);
+            this.eventQueue.add(json);
             lastHeartBeatMillis = now;
         }
     }
@@ -137,7 +152,7 @@ public final class NyanPlugin implements Plugin {
             event.addProperty("uuid", user.getUuid());
         }
         event.addProperty("timestamp", System.currentTimeMillis());
-        this.juggler.writeEvent(event);
+        this.eventQueue.add(event);
         final HeadlessMinecraft mc = user.getGame();
         if (mc != null) {
             LOGGER.info("Slave attached {}", user.getUsername());
@@ -153,7 +168,7 @@ public final class NyanPlugin implements Plugin {
             event.addProperty("uuid", user.getUuid());
         }
         event.addProperty("timestamp", System.currentTimeMillis());
-        this.juggler.writeEvent(event);
+        this.eventQueue.add(event);
         final HeadlessMinecraft mc = user.getGame();
         if (mc != null) {
             LOGGER.info("Slave detached {}", user.getUsername());
