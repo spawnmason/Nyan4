@@ -1,5 +1,6 @@
 package net.futureclient.nyan4;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import net.futureclient.headless.eventbus.EventPriority;
 import net.futureclient.headless.eventbus.SubscribeEvent;
@@ -132,13 +133,19 @@ public final class NyanPlugin implements Plugin {
 
     @SubscribeEvent
     public void onGlobalTick(final TickEvent.Global event) {
-        this.eventQueue.addAll(this.serverTracker.tick(getOnlineSlaves()));
+        Collection<Slave> slaves = getOnlineSlaves();
+        this.eventQueue.addAll(this.serverTracker.tick(slaves));
 
         final long now = System.currentTimeMillis();
         if (now - lastHeartBeatMillis > 5000) {
             JsonObject json = new JsonObject();
+            JsonArray servers = new JsonArray();
+            for (Slave s : slaves) {
+                servers.add(s.serverConnectedTo());
+            }
             json.addProperty("type", "heartbeat");
             json.addProperty("timestamp", now);
+            json.add("servers", servers);
             this.eventQueue.add(json);
             lastHeartBeatMillis = now;
         }
