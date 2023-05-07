@@ -17,6 +17,7 @@ import org.apache.logging.log4j.Logger;
 import java.lang.management.ManagementFactory;
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -35,7 +36,8 @@ public final class NyanPlugin implements Plugin {
     private NyanServer nyanServer;
     private DatabaseJuggler juggler;
     public NyanDatabase database;
-    private OnlinePlayerTracker tracker;
+    private OnlinePlayerTracker playerTracker;
+    private ServerTracker serverTracker;
 
     @Override
     public void onEnable(final PluginContext ctx) {
@@ -54,7 +56,8 @@ public final class NyanPlugin implements Plugin {
         event.addProperty("server", "2b2t");
         event.addProperty("timestamp", System.currentTimeMillis());
         this.juggler.writeEvent(event);
-        this.tracker = new OnlinePlayerTracker();
+        this.playerTracker = new OnlinePlayerTracker();
+        this.serverTracker = new ServerTracker();
         ctx.userManager().users().forEach(this::attachSlave);
         ctx.subscribers().register(this);
     }
@@ -102,9 +105,18 @@ public final class NyanPlugin implements Plugin {
         }
     }
 
+    private Collection<Slave> getOnlineSlaves() {
+        return this.slaves.values().stream().filter(slave -> slave.ctx.player != null && !slave.probablyInQueue()).collect(Collectors.toList());
+    }
+
     @SubscribeEvent
     public void onTick(final TickEvent.Tasks event) {
-        this.tracker.tick(this.slaves.values().stream().filter(slave -> slave.ctx.player != null && !slave.probablyInQueue()).collect(Collectors.toList())).forEach(this.juggler::writeEvent);
+        this.playerTracker.tick(getOnlineSlaves()).forEach(this.juggler::writeEvent);
+    }
+
+    @SubscribeEvent
+    public void onGlobalTick(final TickEvent.Global event) {
+        this.serverTracker.tick(getOnlineSlaves()).forEach(this.juggler::writeEvent);
     }
 
     private void attachSlave(final User user) {
