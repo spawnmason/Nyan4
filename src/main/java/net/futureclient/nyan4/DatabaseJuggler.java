@@ -120,7 +120,7 @@ public class DatabaseJuggler {
             List<String> jsonEvents = new ArrayList<>();
             int firstRowidFetched = progress + 1;
             try (Connection sqliteConn = nyanDatabase.database.getConnection();
-                 PreparedStatement stmt = sqliteConn.prepareStatement("SELECT json, rowid FROM events_fallback WHERE rowid > ? ORDER BY rowid LIMIT 1000")) {
+                 PreparedStatement stmt = sqliteConn.prepareStatement("SELECT json, rowid FROM events_fallback WHERE rowid > ? ORDER BY rowid LIMIT 10000")) {
                 stmt.setInt(1, progress);
                 try (ResultSet rs = stmt.executeQuery()) {
                     while (rs.next()) {
