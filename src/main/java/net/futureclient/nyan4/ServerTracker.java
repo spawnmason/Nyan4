@@ -21,7 +21,7 @@ public class ServerTracker {
         final long now = System.currentTimeMillis();
         Set<String> current = new ObjectArraySet<>();
         currentlyOnline.stream()
-                .map(ServerTracker::serverConnectedTo)
+                .map(Slave::serverConnectedTo)
                 .filter(x -> x != null)
                 .forEach(current::add);
         Set<String> newServers = new ObjectArraySet<>(current);
@@ -59,21 +59,5 @@ public class ServerTracker {
         return events;
     }
 
-    private static String serverConnectedTo(Slave slave) {
-        ServerData currentServer = slave.ctx.getCurrentServerData();
-        if (currentServer == null) return null;
-        String ip = currentServer.serverIP;
-        final int portIdx = ip.indexOf(':');
-        if (portIdx != -1) ip = ip.substring(0, portIdx);
 
-        return getBaseDomain(ip);
-    }
-
-    private static String getBaseDomain(String ip) {
-        try {
-            return InternetDomainName.from(ip).topPrivateDomain().toString();
-        } catch (IllegalArgumentException ex) { // not a domain
-            return ip;
-        }
-    }
 }

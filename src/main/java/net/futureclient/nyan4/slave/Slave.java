@@ -1,5 +1,6 @@
 package net.futureclient.nyan4.slave;
 
+import com.google.common.net.InternetDomainName;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.seedfinding.latticg.RandomReverser;
@@ -9,6 +10,7 @@ import net.futureclient.nyan4.DatabaseJuggler;
 import net.futureclient.nyan4.NyanDatabase;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiDownloadTerrain;
+import net.minecraft.client.multiplayer.ServerData;
 import net.minecraft.client.network.NetworkPlayerInfo;
 import net.minecraft.network.play.server.SPacketPlayerListItem;
 import net.minecraft.network.play.server.SPacketSpawnObject;
@@ -222,6 +224,24 @@ public final class Slave {
     public Collection<NetworkPlayerInfo> getOnlinePlayers() {
         // same deal as whenDidThisUUIDJoin
         return Collections.unmodifiableCollection(ctx.player.connection.getPlayerInfoMap());
+    }
+
+    public String serverConnectedTo() {
+        ServerData currentServer = this.ctx.getCurrentServerData();
+        if (currentServer == null) return null;
+        String ip = currentServer.serverIP;
+        final int portIdx = ip.indexOf(':');
+        if (portIdx != -1) ip = ip.substring(0, portIdx);
+
+        return getBaseDomain(ip);
+    }
+
+    private static String getBaseDomain(String ip) {
+        try {
+            return InternetDomainName.from(ip).topPrivateDomain().toString();
+        } catch (IllegalArgumentException ex) { // not a domain
+            return ip;
+        }
     }
 
     public void close() {
