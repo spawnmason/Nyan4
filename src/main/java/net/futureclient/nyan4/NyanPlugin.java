@@ -126,15 +126,16 @@ public final class NyanPlugin implements Plugin {
 
     @SubscribeEvent
     public void onTick(final TickEvent.Tasks event) {
-        this.eventQueue.addAll(this.playerTracker.tick(getOnlineSlaves()));
+        Collection<Slave> slaves = getOnlineSlaves();
+        this.eventQueue.addAll(this.serverTracker.tick(slaves));
+        this.eventQueue.addAll(this.playerTracker.tick(slaves));
     }
 
     @SubscribeEvent
     public void onGlobalTick(final TickEvent.Global event) {
-        Collection<Slave> slaves = getOnlineSlaves();
-        this.eventQueue.addAll(this.serverTracker.tick(slaves));
-
         final long now = System.currentTimeMillis();
+        Collection<Slave> slaves = getOnlineSlaves();
+
         if (now - lastHeartBeatMillis > 5000) {
             JsonObject json = new JsonObject();
             Set<String> servers = new ObjectArraySet<>();
