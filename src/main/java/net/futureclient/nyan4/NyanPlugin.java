@@ -38,6 +38,7 @@ public final class NyanPlugin implements Plugin {
     public NyanDatabase database;
     private OnlinePlayerTracker playerTracker;
     private ServerTracker serverTracker;
+    private long lastHeartBeatMillis = 0L;
 
     @Override
     public void onEnable(final PluginContext ctx) {
@@ -117,6 +118,15 @@ public final class NyanPlugin implements Plugin {
     @SubscribeEvent
     public void onGlobalTick(final TickEvent.Global event) {
         this.serverTracker.tick(getOnlineSlaves()).forEach(this.juggler::writeEvent);
+
+        final long now = System.currentTimeMillis();
+        if (now - lastHeartBeatMillis > 5000) {
+            JsonObject json = new JsonObject();
+            json.addProperty("type", "heartbeat");
+            json.addProperty("timestamp", now);
+            this.juggler.writeEvent(json);
+            lastHeartBeatMillis = now;
+        }
     }
 
     private void attachSlave(final User user) {
