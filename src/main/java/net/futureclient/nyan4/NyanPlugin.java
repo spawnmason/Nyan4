@@ -134,16 +134,11 @@ public final class NyanPlugin implements Plugin {
     @SubscribeEvent
     public void onGlobalTick(final TickEvent.Global event) {
         final long now = System.currentTimeMillis();
-        Collection<Slave> slaves = getOnlineSlaves();
 
         if (now - lastHeartBeatMillis > 5000) {
             JsonObject json = new JsonObject();
-            Set<String> servers = new ObjectArraySet<>();
             JsonArray serversJson = new JsonArray();
-            for (Slave s : slaves) {
-                servers.add(s.serverConnectedTo());
-            }
-            for (String s : servers) {
+            for (String s : this.serverTracker.getActiveServerSet()) {
                 serversJson.add(s);
             }
             json.addProperty("type", "heartbeat");

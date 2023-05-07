@@ -59,5 +59,8 @@ public class ServerTracker {
         return events;
     }
 
+    public Set<String> getActiveServerSet() {
+        return Collections.unmodifiableSet(this.activeServerSet);
+    }
 
 }
