@@ -107,12 +107,11 @@ public class DatabaseJuggler {
                     int makeSure = getLatestSqliteEvent(nyanDatabase);
                     if (makeSure == progress) {
                         // we're sure
-                        /*LOGGER.info("SWITCHING TO POSTGRES");
+                        LOGGER.info("SWITCHING TO POSTGRES");
                         this.writer = new EventWriter.Postgres(postgres);
-                        this.backfillFromSqliteThread = null;*/
-                        //LOGGER.info("WOULD switch to postgres if i trusted her");
-                        //return true;
+                        this.backfillFromSqliteThread = null;
                         LOGGER.info("switching to postgres because I trust her");
+                        return true;
                     }
                 }
                 return false;
