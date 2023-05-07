@@ -2,6 +2,7 @@ package net.futureclient.nyan4;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import it.unimi.dsi.fastutil.objects.ObjectArraySet;
 import net.futureclient.headless.eventbus.EventPriority;
 import net.futureclient.headless.eventbus.SubscribeEvent;
 import net.futureclient.headless.eventbus.events.PacketEvent;
@@ -17,10 +18,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.lang.management.ManagementFactory;
 import java.security.SecureRandom;
-import java.util.Base64;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Queue;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
@@ -139,13 +137,17 @@ public final class NyanPlugin implements Plugin {
         final long now = System.currentTimeMillis();
         if (now - lastHeartBeatMillis > 5000) {
             JsonObject json = new JsonObject();
-            JsonArray servers = new JsonArray();
+            Set<String> servers = new ObjectArraySet<>();
+            JsonArray serversJson = new JsonArray();
             for (Slave s : slaves) {
                 servers.add(s.serverConnectedTo());
             }
+            for (String s : servers) {
+                serversJson.add(s);
+            }
             json.addProperty("type", "heartbeat");
             json.addProperty("timestamp", now);
-            json.add("servers", servers);
+            json.add("servers", serversJson);
             this.eventQueue.add(json);
             lastHeartBeatMillis = now;
         }
