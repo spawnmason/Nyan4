@@ -23,7 +23,7 @@ public interface EventWriter {
         @Override
         public void writeEvent(JsonObject json) throws SQLException {
             try (Connection con = this.db.getConnection()) {
-                try (PreparedStatement statement = con.prepareStatement("INSERT INTO events VALUES (?)")) {
+                try (PreparedStatement statement = con.prepareStatement("INSERT INTO events VALUES (?::jsonb)")) {
                     statement.setString(1, GSON.toJson(json));
                     statement.execute();
                 }
