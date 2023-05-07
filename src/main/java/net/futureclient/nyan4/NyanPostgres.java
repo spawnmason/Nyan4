@@ -14,7 +14,7 @@ public class NyanPostgres {
             BasicDataSource POOL = new BasicDataSource();
             POOL.setUsername(Objects.requireNonNull(System.getenv("PSQL_USER"), "Missing username for database"));
             POOL.setPassword(Objects.requireNonNull(System.getenv("PSQL_PASS"), "Missing password for database"));
-            POOL.setDriverClassName("org.postgresql.Driver");
+            POOL.setDriver(new org.postgresql.Driver());
             POOL.setUrl(Objects.requireNonNull(System.getenv("PSQL_URL"), "Missing url for database"));
             POOL.setInitialSize(1);
             POOL.setMaxTotal(2);
@@ -38,6 +38,7 @@ public class NyanPostgres {
             System.out.println("Connected to postgres.");
             return Optional.of(POOL);
         } catch (Throwable th) {
+            th.printStackTrace();
             return Optional.empty(); // we don't have the env vars set up yet
         }
     }

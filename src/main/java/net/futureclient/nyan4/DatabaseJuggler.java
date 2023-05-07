@@ -140,7 +140,7 @@ public class DatabaseJuggler {
                 jsonEvents.set(i, gson.toJson(event));
             });
             // insert into the events table of postgresConn all of the jsonEvents
-            try (PreparedStatement stmt = postgresConn.prepareStatement("INSERT INTO events (event) VALUES (?)")) {
+            try (PreparedStatement stmt = postgresConn.prepareStatement("INSERT INTO events (event) VALUES (?::jsonb)")) {
                 for (String jsonEvent : jsonEvents) {
                     stmt.setString(1, jsonEvent);
                     stmt.execute();
