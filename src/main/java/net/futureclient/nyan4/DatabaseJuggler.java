@@ -110,8 +110,9 @@ public class DatabaseJuggler {
                         /*LOGGER.info("SWITCHING TO POSTGRES");
                         this.writer = new EventWriter.Postgres(postgres);
                         this.backfillFromSqliteThread = null;*/
-                        LOGGER.info("WOULD switch to postgres if i trusted her");
-                        return true;
+                        //LOGGER.info("WOULD switch to postgres if i trusted her");
+                        //return true;
+                        LOGGER.info("switching to postgres because I trust her");
                     }
                 }
                 return false;

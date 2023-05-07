@@ -185,7 +185,7 @@ public final class Slave {
         JsonObject event = new JsonObject();
         event.addProperty("type", "seed");
         event.addProperty("timestamp", timestamp);
-        event.addProperty("server", "2b2t");
+        event.addProperty("server", "2b2t.org");
         event.addProperty("blockX", blockX);
         event.addProperty("blockY", blockY);
         event.addProperty("blockZ", blockZ);

@@ -63,6 +63,9 @@ public class ServerTracker {
         ServerData currentServer = slave.ctx.getCurrentServerData();
         if (currentServer == null) return null;
         String ip = currentServer.serverIP;
+        final int portIdx = ip.indexOf(':');
+        if (portIdx != -1) ip = ip.substring(0, portIdx);
+
         return getBaseDomain(ip);
     }
 
