@@ -61,6 +61,7 @@ public class OnlinePlayerTracker {
         for (OnlinePlayer player : removedSinceLastTick) {
             JsonObject event = new JsonObject();
             event.addProperty("type", "player_leave");
+            event.addProperty("server", "2b2t.org"); // TODO: FIX
             event.addProperty("uuid", player.uuid.toString());
             event.addProperty("username", player.username);
             event.addProperty("tracker_timestamp", now);
