@@ -172,11 +172,11 @@ public final class Slave {
         int next24_2 = (int) (rnd2 * (1 << 24));
         int next24_3 = (int) (rnd3 * (1 << 24));
         if (!couldBeFromRandNextFloat(rnd1, next24_1) || !couldBeFromRandNextFloat(rnd2, next24_2) || !couldBeFromRandNextFloat(rnd3, next24_3)) {
-            LOGGER.info("skipping troll item not from a block drop");
+            LOGGER.info("skipping troll item not from a block drop {} {} {} {} {} {}", blockX, blockY, blockZ, Double.doubleToRawLongBits(x), Double.doubleToRawLongBits(y), Double.doubleToRawLongBits(z));
             return;
         }
         if (!verifyBlockDrop(next24_1, blockX, x) || !verifyBlockDrop(next24_2, blockY, y) || !verifyBlockDrop(next24_3, blockZ, z)) {
-            LOGGER.fatal("sanity check failed, this should be impossible {} {} {}", Double.doubleToRawLongBits(x), Double.doubleToRawLongBits(y), Double.doubleToRawLongBits(z));
+            LOGGER.fatal("sanity check failed, this should be impossible {} {} {} {} {} {}", blockX, blockY, blockZ, Double.doubleToRawLongBits(x), Double.doubleToRawLongBits(y), Double.doubleToRawLongBits(z));
             throw new IllegalStateException("sanity check " + Double.doubleToRawLongBits(x) + " " + Double.doubleToRawLongBits(y) + " " + Double.doubleToRawLongBits(z)); // should be literally impossible based on the above two debug checks
         }
         final RandomReverser rev = new RandomReverser(new ArrayList<>());
