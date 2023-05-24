@@ -193,7 +193,7 @@ public final class Slave {
         JsonArray seeds = new JsonArray();
         long seed = LatticeReverser.crackOptimizedDoesntMakeSense(next24_1, next24_2, next24_3);
         if (seed != -1) {
-            seeds.add(seed);
+            seeds.add(Long.toString(seed));
         }
         event.add("seeds", seeds);
         output.writeEvent(event);
