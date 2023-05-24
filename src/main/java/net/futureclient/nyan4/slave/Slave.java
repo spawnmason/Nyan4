@@ -76,7 +76,7 @@ public final class Slave {
                     return;
                 }
                 final DimensionType dimension = ctx.world.provider.getDimensionType();
-                if (!DimensionType.OVERWORLD.equals(dimension)) {
+                if (DimensionType.NETHER.equals(dimension)) {
                     return;
                 }
                 //LOGGER.info("Processing item drop at y {}", (int) y);
