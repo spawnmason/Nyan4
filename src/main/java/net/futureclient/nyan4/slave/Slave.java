@@ -3,10 +3,10 @@ package net.futureclient.nyan4.slave;
 import com.google.common.net.InternetDomainName;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.seedfinding.latticg.RandomReverser;
 import net.futureclient.headless.eventbus.events.PacketEvent;
 import net.futureclient.headless.game.HeadlessMinecraft;
 import net.futureclient.nyan4.DatabaseJuggler;
+import net.futureclient.nyan4.LatticeReverser;
 import net.futureclient.nyan4.NyanDatabase;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiDownloadTerrain;
@@ -179,11 +179,6 @@ public final class Slave {
             LOGGER.fatal("sanity check failed, this should be impossible {} {} {} {} {} {}", blockX, blockY, blockZ, Double.doubleToRawLongBits(x), Double.doubleToRawLongBits(y), Double.doubleToRawLongBits(z));
             throw new IllegalStateException("sanity check " + Double.doubleToRawLongBits(x) + " " + Double.doubleToRawLongBits(y) + " " + Double.doubleToRawLongBits(z)); // should be literally impossible based on the above two debug checks
         }
-        final RandomReverser rev = new RandomReverser(new ArrayList<>());
-        rev.addNextFloatCall(rnd1, rnd1, true, true);
-        rev.addNextFloatCall(rnd2, rnd2, true, true);
-        rev.addNextFloatCall(rnd3, rnd3, true, true);
-        final long[] found = rev.findAllValidSeeds().toArray();
         JsonObject event = new JsonObject();
         event.addProperty("type", "seed");
         event.addProperty("timestamp", timestamp);
@@ -196,18 +191,12 @@ public final class Slave {
         event.addProperty("rng3", next24_3);
         event.addProperty("dimension", dimension);
         JsonArray seeds = new JsonArray();
-        for (long seed : found) {
-            seeds.add(Long.toString(seed));
+        long seed = LatticeReverser.crackOptimizedDoesntMakeSense(next24_1, next24_2, next24_3);
+        if (seed != -1) {
+            seeds.add(seed);
         }
         event.add("seeds", seeds);
         output.writeEvent(event);
-        if (found.length != 1) {
-            LOGGER.info("Failed match " + x + " " + y + " " + z + " " + Arrays.toString(found));
-            tempDatabase.saveData(timestamp, -1);
-        }
-        for (long candidate : found) {
-            tempDatabase.saveData(timestamp, candidate);
-        }
     }
 
     public Map<UUID, Long> getRecentlyLeft() {

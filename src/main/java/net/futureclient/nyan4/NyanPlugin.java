@@ -2,7 +2,6 @@ package net.futureclient.nyan4;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import it.unimi.dsi.fastutil.objects.ObjectArraySet;
 import net.futureclient.headless.eventbus.EventPriority;
 import net.futureclient.headless.eventbus.SubscribeEvent;
 import net.futureclient.headless.eventbus.events.PacketEvent;
@@ -18,7 +17,9 @@ import org.apache.logging.log4j.Logger;
 
 import java.lang.management.ManagementFactory;
 import java.security.SecureRandom;
-import java.util.*;
+import java.util.Base64;
+import java.util.Collection;
+import java.util.Map;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
@@ -30,7 +31,6 @@ public final class NyanPlugin implements Plugin {
 
     public ScheduledExecutorService executor;
 
-    private NyanServer nyanServer;
     private DatabaseJuggler juggler;
     public NyanDatabase database;
     private OnlinePlayerTracker playerTracker;
@@ -44,11 +44,6 @@ public final class NyanPlugin implements Plugin {
     public void onEnable(final PluginContext ctx) {
         this.executor = Executors.newScheduledThreadPool(1);
         this.database = new NyanDatabase();
-        try {
-            this.nyanServer = new NyanServer(this.database);
-        } catch (Exception ex) {
-            LOGGER.warn("Failed to nyan server", ex);
-        }
         String nyan4id = ManagementFactory.getRuntimeMXBean().getName() + ":" + new String(Base64.getUrlEncoder().encode(new SecureRandom().generateSeed(16))).replaceAll("=", "");
         // ^ looks like 12345@blahaj:123abcABC (the first few numbers are the PID)
         this.juggler = new DatabaseJuggler(database, event -> event.addProperty("nyan4id", nyan4id));
@@ -87,10 +82,6 @@ public final class NyanPlugin implements Plugin {
             this.executor = null;
         } catch (final Throwable t) {
             LOGGER.warn("Failed to stop executor", t);
-        }
-        if (this.nyanServer != null) {
-            this.nyanServer.shutdown();
-            this.nyanServer = null;
         }
         if (this.juggler != null) {
             this.juggler.shutdown();

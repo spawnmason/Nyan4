@@ -5,16 +5,7 @@ minecraft {
     accessTransformer rootProject.file('strip_access_at.cfg')
 }
 
-repositories {
-    maven {
-        url 'https://maven.latticg.com/'
-    }
-}
-
 dependencies {
-    shade(group: 'com.seedfinding', name: 'latticg', version: '1.06') {
-        transitive = false
-    }
     shade('org.postgresql:postgresql:42.2.27') {
         transitive = true
     }
