@@ -9,21 +9,16 @@ public class LatticeReverser {
     public static long crackOptimizedDoesntMakeSense(int rngMeasurement1, int rngMeasurement2, int rngMeasurement3) {
         // THIS IS THE VERSION OF THE FUNCTION THAT IS OPTIMIZED TO TAKE LESS THAN 50 NANOSECONDS AND UNCOMMENTED AND WON'T MAKE SENSE
         // it's the same logic as below just optimized :)
-        long bound0Min = ((long) rngMeasurement1 << 24) - ADDEND_1;
-        long bound0Max = bound0Min + ((1L << 24) - 1);
-        long bound1Min = ((long) rngMeasurement2 << 24) - ADDEND_2;
-        long bound1Max = bound1Min + ((1L << 24) - 1);
-        long bound2Min = ((long) rngMeasurement3 << 24) - ADDEND_3;
-        long bound2Max = bound2Min + ((1L << 24) - 1);
-        double bound0A = invBasis00 * bound0Min + invBasis01 * bound1Min + invBasis02 * bound2Min;
-        double bound0B = invBasis00 * bound0Max + invBasis01 * bound1Max + invBasis02 * bound2Max;
-        double bound1A = invBasis10 * bound0Min + invBasis11 * bound1Min + invBasis12 * bound2Min;
-        double bound1B = invBasis10 * bound0Max + invBasis11 * bound1Max + invBasis12 * bound2Max;
-        double bound2A = invBasis20 * bound0Min + invBasis21 * bound1Min + invBasis22 * bound2Min;
-        double bound2B = invBasis20 * bound0Max + invBasis21 * bound1Max + invBasis22 * bound2Max;
-        long result0 = Math.round(bound0A / 2 + bound0B / 2);
-        long result1 = Math.round(bound1A / 2 + bound1B / 2);
-        long result2 = Math.round(bound2A / 2 + bound2B / 2);
+        // except, we average the min and max of the bounds BEFORE multiplying by the inverted LLL basis matrix (this is very unintuitive but hey, a linear map is a linear map)
+        long bound0Mid = ((long) rngMeasurement1 << 24) + ((1L << 23) - ADDEND_1);
+        long bound1Mid = ((long) rngMeasurement2 << 24) + ((1L << 23) - ADDEND_2);
+        long bound2Mid = ((long) rngMeasurement3 << 24) + ((1L << 23) - ADDEND_3);
+        double bound0 = invBasis00 * bound0Mid + invBasis01 * bound1Mid + invBasis02 * bound2Mid;
+        double bound1 = invBasis10 * bound0Mid + invBasis11 * bound1Mid + invBasis12 * bound2Mid;
+        double bound2 = invBasis20 * bound0Mid + invBasis21 * bound1Mid + invBasis22 * bound2Mid;
+        long result0 = Math.round(bound0);
+        long result1 = Math.round(bound1);
+        long result2 = Math.round(bound2);
         long seed = (result0 * basisFirstRow0 + result1 * basisFirstRow1 + result2 * basisFirstRow2) & LCG_MASK;
         long next = (seed * LCG_MULT + LCG_ADD) & LCG_MASK;
         long nextNext = (next * LCG_MULT + LCG_ADD) & LCG_MASK;
