@@ -48,7 +48,7 @@ public final class Slave {
     public void onPacket(final PacketEvent.Receive event) {
         // NOTE: NETTY THREAD! NOT MAIN THREAD!
         out:
-        if (event.getPacket() instanceof SPacketSpawnObject) {
+        if (event.getPacket() instanceof SPacketSpawnObject && false) { // it's joever
             final SPacketSpawnObject packet = event.getPacket();
             // the type for item entities is 2 and the data is always 1
             if (packet.getType() != 2 || packet.getData() != 1) {
