@@ -1,15 +1,15 @@
 group 'net.futureclient'
 version '1.0'
 
-minecraft {
-    accessTransformer rootProject.file('strip_access_at.cfg')
+loom {
+    accessWidenerPath = this.rootProject.file('src/main/resources/headless.accesswidener')
 }
 
 dependencies {
     shade('org.postgresql:postgresql:42.2.27') {
         transitive = true
     }
-    shade('org.apache.commons:commons-dbcp2:2.7.0') {
+    shade('org.apache.commons:commons-dbcp2:2.10.0') {
         transitive = false
     }
 }
