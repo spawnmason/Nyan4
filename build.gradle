@@ -2,7 +2,7 @@ group 'net.futureclient'
 version '1.0'
 
 loom {
-    accessWidenerPath = this.rootProject.file('src/main/resources/headless.accesswidener')
+    accessWidenerPath = this.rootProject.file('src/launch/resources/headless.accesswidener')
 }
 
 dependencies {
