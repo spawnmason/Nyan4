@@ -8,15 +8,12 @@ import net.futureclient.headless.game.HeadlessMinecraft;
 import net.futureclient.nyan4.DatabaseJuggler;
 import net.futureclient.nyan4.LatticeReverser;
 import net.futureclient.nyan4.NyanDatabase;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiDownloadTerrain;
-import net.minecraft.client.multiplayer.ServerData;
-import net.minecraft.client.network.NetworkPlayerInfo;
-import net.minecraft.network.play.server.SPacketPlayerListItem;
-import net.minecraft.network.play.server.SPacketSpawnObject;
-import net.minecraft.util.math.BlockPos;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.PlayerListEntry;
+import net.minecraft.client.network.ServerInfo;
+import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket;
+import net.minecraft.network.packet.s2c.play.PlayerRemoveS2CPacket;
 import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.DimensionType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -27,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 public final class Slave {
     private static final Logger LOGGER = LogManager.getLogger("Slave");
 
-    public final Minecraft ctx;
+    public final MinecraftClient ctx;
     private final ScheduledExecutorService pluginExecutor;
     private final DatabaseJuggler newDatabase;
 
@@ -47,77 +44,36 @@ public final class Slave {
 
     public void onPacket(final PacketEvent.Receive event) {
         // NOTE: NETTY THREAD! NOT MAIN THREAD!
-        out:
-        if (event.getPacket() instanceof SPacketSpawnObject && false) { // it's joever
-            final SPacketSpawnObject packet = event.getPacket();
-            // the type for item entities is 2 and the data is always 1
-            if (packet.getType() != 2 || packet.getData() != 1) {
-                break out;
-            }
-            // dropped items from blocks always have motionY 0.2 which when encoded by 8000 in the packet comes out to 1600 integer
-            if (packet.getSpeedY() != 1600) {
-                break out;
-            }
-            final long recTime = System.currentTimeMillis();
-            final double x = packet.getX();
-            final double y = packet.getY();
-            final double z = packet.getZ();
-            ctx.addScheduledTask(() -> {
-                // disconnected
-                if (ctx.world == null || ctx.player == null) {
-                    return;
-                }
-                // in the queue
-                if (probablyInQueue()) {
-                    return;
-                }
-                // not loaded in world
-                if (ctx.currentScreen instanceof GuiDownloadTerrain || !ctx.world.isBlockLoaded(new BlockPos(ctx.player), false)) {
-                    return;
-                }
-                final DimensionType dimension = ctx.world.provider.getDimensionType();
-                if (DimensionType.NETHER.equals(dimension)) {
-                    return;
-                }
-                //LOGGER.info("Processing item drop at y {}", (int) y);
-                pluginExecutor.execute(() -> {
-                    // process async
-                    try {
-                        processItemDropAsync(x, y, z, recTime, (short) dimension.getId(), this.newDatabase, this.tempDatabase);
-                    } catch (final Throwable t) {
-                        LOGGER.error("Error while processing item drop", t);
-                    }
-                });
-            });
-        } else if (event.getPacket() instanceof SPacketPlayerListItem) {
-            SPacketPlayerListItem packet = event.getPacket();
+        if (event.getPacket() instanceof PlayerListS2CPacket packet) {
             long now = System.currentTimeMillis();
-            ctx.addScheduledTask(() -> {
+            ctx.execute(() -> {
                 if (probablyInQueue()) {
                     return;
                 }
-                for (SPacketPlayerListItem.AddPlayerData data : packet.getEntries()) {
-                    if (packet.getAction() == SPacketPlayerListItem.Action.ADD_PLAYER) {
-                        recentlyJoinedTheGame.put(data.getProfile().getId(), now);
-                        recentlyLeftTheGame.remove(data.getProfile().getId());
-                        if ("100010".equals(data.getProfile().getName())) {
+                for (PlayerListS2CPacket.Entry data : packet.getEntries()) {
+                    if (packet.getActions().contains(PlayerListS2CPacket.Action.ADD_PLAYER)) {
+                        recentlyJoinedTheGame.put(data.profile().getId(), now);
+                        recentlyLeftTheGame.remove(data.profile().getId());
+                        if ("100010".equals(data.profile().getName())) {
                             LOGGER.warn("100010 joined the game from the pov of {}", whoamiForDebug);
                         }
                     }
-                    if (packet.getAction() == SPacketPlayerListItem.Action.REMOVE_PLAYER) {
-                        recentlyLeftTheGame.put(data.getProfile().getId(), now);
-                        recentlyJoinedTheGame.remove(data.getProfile().getId());
-                        if ("100010".equals(data.getProfile().getName())) {
-                            LOGGER.warn("100010 left the game from the pov of {}", whoamiForDebug);
-                        }
-                    }
                 }
             });
+        } else if (event.getPacket() instanceof PlayerRemoveS2CPacket packet) {
+            long now = System.currentTimeMillis();
+            for (UUID id : packet.profileIds()) {
+                recentlyLeftTheGame.put(id, now);
+                recentlyJoinedTheGame.remove(id);
+                if (UUID.fromString("1e567ed0-1eba-4262-9073-085c23897dd9").equals(id)) { //100010
+                    LOGGER.warn("100010 left the game from the pov of {}", whoamiForDebug);
+                }
+            }
         }
     }
 
     public boolean probablyInQueue() {
-        return ctx.player.isSpectator() || Math.abs(ctx.player.posX) <= 16 && Math.abs(ctx.player.posZ) <= 16;
+        return ctx.player.isSpectator() || Math.abs(ctx.player.getX()) <= 16 && Math.abs(ctx.player.getZ()) <= 16;
     }
 
     private static boolean couldBeFromRandNextFloat(float f, int rngNext24) {
@@ -210,15 +166,15 @@ public final class Slave {
         return recentlyJoinedTheGame.get(uuid);
     }
 
-    public Collection<NetworkPlayerInfo> getOnlinePlayers() {
+    public Collection<PlayerListEntry> getOnlinePlayers() {
         // same deal as whenDidThisUUIDJoin
-        return Collections.unmodifiableCollection(ctx.player.connection.getPlayerInfoMap());
+        return Collections.unmodifiableCollection(ctx.getNetworkHandler().getPlayerList());
     }
 
     public String serverConnectedTo() {
-        ServerData currentServer = this.ctx.getCurrentServerData();
+        ServerInfo currentServer = this.ctx.getCurrentServerEntry();
         if (currentServer == null) return null;
-        String ip = currentServer.serverIP;
+        String ip = currentServer.address;
         final int portIdx = ip.indexOf(':');
         if (portIdx != -1) ip = ip.substring(0, portIdx);
 

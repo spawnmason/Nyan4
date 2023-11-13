@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import com.mojang.authlib.GameProfile;
 import net.futureclient.nyan4.slave.Slave;
 import net.minecraft.client.network.NetworkPlayerInfo;
+import net.minecraft.client.network.PlayerListEntry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -18,7 +19,7 @@ public class OnlinePlayerTracker {
         // assemble the new onlinePlayerSet
         Set<OnlinePlayer> current = new HashSet<>();
         // add the online players from every slave
-        currentlyOnline.forEach(slave -> slave.getOnlinePlayers().stream().map(NetworkPlayerInfo::getGameProfile).map(OnlinePlayer::new).forEach(current::add));
+        currentlyOnline.forEach(slave -> slave.getOnlinePlayers().stream().map(PlayerListEntry::getProfile).map(OnlinePlayer::new).forEach(current::add));
         // but remove any players if even one of the slaves has observed that player to have recently left (and not rejoined)
         currentlyOnline.forEach(slave -> slave.getRecentlyLeft().keySet().stream().map(OnlinePlayer::new).forEach(current::remove));
 
@@ -40,7 +41,7 @@ public class OnlinePlayerTracker {
             for (Slave slave : currentlyOnline) {
                 Long joinTimestamp = slave.whenDidThisUUIDJoin(player.uuid);
                 if (player.username.equals("100010")) {
-                    LOGGER.warn("100010 info {} {} {}", slave.getRecentlyLeft().get(UUID.fromString("1e567ed0-1eba-4262-9073-085c23897dd9")), slave.whenDidThisUUIDJoin(UUID.fromString("1e567ed0-1eba-4262-9073-085c23897dd9")), slave.getOnlinePlayers().stream().filter(net -> net.getGameProfile().getName().equals("100010")).count());
+                    LOGGER.warn("100010 info {} {} {}", slave.getRecentlyLeft().get(UUID.fromString("1e567ed0-1eba-4262-9073-085c23897dd9")), slave.whenDidThisUUIDJoin(UUID.fromString("1e567ed0-1eba-4262-9073-085c23897dd9")), slave.getOnlinePlayers().stream().filter(net -> net.getProfile().getName().equals("100010")).count());
                     LOGGER.warn("join timestamp of 100010 from pov of {} was {}", slave.whoamiForDebug, joinTimestamp);
                 }
                 if (joinTimestamp != null) {

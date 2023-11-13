@@ -1,12 +1,9 @@
 package net.futureclient.nyan4;
 
-import com.google.common.net.InternetDomainName;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import it.unimi.dsi.fastutil.objects.ObjectArraySet;
 import net.futureclient.nyan4.slave.Slave;
-import net.minecraft.client.multiplayer.ServerData;
-import net.minecraft.client.network.NetHandlerPlayClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

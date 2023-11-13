@@ -11,7 +11,7 @@ import net.futureclient.headless.game.HeadlessMinecraft;
 import net.futureclient.headless.plugin.Plugin;
 import net.futureclient.headless.user.User;
 import net.futureclient.nyan4.slave.Slave;
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 public final class NyanPlugin implements Plugin {
     private static final Logger LOGGER = LogManager.getLogger("Nyan");
 
-    private final Map<Minecraft, Slave> slaves = new ConcurrentHashMap<>();
+    private final Map<MinecraftClient, Slave> slaves = new ConcurrentHashMap<>();
 
     public ScheduledExecutorService executor;
 
