@@ -62,13 +62,19 @@ public final class Slave {
             });
         } else if (event.getPacket() instanceof PlayerRemoveS2CPacket packet) {
             long now = System.currentTimeMillis();
-            for (UUID id : packet.profileIds()) {
-                recentlyLeftTheGame.put(id, now);
-                recentlyJoinedTheGame.remove(id);
-                if (UUID.fromString("1e567ed0-1eba-4262-9073-085c23897dd9").equals(id)) { //100010
-                    LOGGER.warn("100010 left the game from the pov of {}", whoamiForDebug);
+            ctx.execute(() -> {
+                if (probablyInQueue()) {
+                    return;
                 }
-            }
+                for (UUID id : packet.profileIds()) {
+                    recentlyLeftTheGame.put(id, now);
+                    recentlyJoinedTheGame.remove(id);
+                    if (UUID.fromString("1e567ed0-1eba-4262-9073-085c23897dd9").equals(id)) { //100010
+                        LOGGER.warn("100010 left the game from the pov of {}", whoamiForDebug);
+                    }
+                }
+            });
+
         }
     }
 

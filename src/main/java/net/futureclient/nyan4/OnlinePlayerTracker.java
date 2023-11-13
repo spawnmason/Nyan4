@@ -3,7 +3,6 @@ package net.futureclient.nyan4;
 import com.google.gson.JsonObject;
 import com.mojang.authlib.GameProfile;
 import net.futureclient.nyan4.slave.Slave;
-import net.minecraft.client.network.NetworkPlayerInfo;
 import net.minecraft.client.network.PlayerListEntry;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
